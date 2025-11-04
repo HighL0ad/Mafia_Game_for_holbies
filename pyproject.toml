@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "mafia"
 version = "0.1.0"
-description = "mafia game for holbies"
+description = "mafia game"
 authors = ["VoiceOfDarkness <abil.samedov2016@yandex.ru>"]
 readme = "README.md"
 
