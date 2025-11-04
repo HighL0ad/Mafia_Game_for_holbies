@@ -1,48 +1,169 @@
 {% extends 'base.html' %}
 
 {% block main %}
-<div class="container">
-    <h1 class="mb-4">Host</h1>
-    <p>code: {{ code }}</p>
-    <div id="player-list" class="player-list">
-        {% for item in context %}
-        <div class="player-item">
-            <span>Player: {{ item.name }}</span>
-            <span>Role: {{ item.role }}</span>
+    <div class="container">
+        <h1 class="mb-4">Host</h1>
+        <p>code: {{ code }}</p>
+
+        <div id="player-list" class="player-list">
+            <h3>Players ({{ player_count }})</h3>
+            {% for item in context %}
+                <div class="player-item">
+                    <span>Player: {{ item.name }}</span>
+                    <span>Role: {{ item.role }}</span>
+                </div>
+            {% else %}
+                <p>No players yet</p>
+            {% endfor %}
         </div>
+
+        {% if status == "waiting" %}
+            <div class="roles-config mt-4">
+                <h3>Configure Roles</h3>
+                <p class="text-muted">Total roles assigned: <span id="total-roles">{{ total_roles }}</span>
+                    / {{ player_count }}</p>
+
+                <form id="roles-form" action="{{ url_for('host_bp.start_game', code=code ) }}" method="post">
+                    <div class="role-item">
+                        <label>Mafia:</label>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('mafia', -1)">-
+                        </button>
+                        <input type="number" name="mafia" id="mafia" value="{{ roles_config.mafia }}" min="0" readonly>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('mafia', 1)">+
+                        </button>
+                    </div>
+
+                    <div class="role-item">
+                        <label>Don:</label>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('don', -1)">-
+                        </button>
+                        <input type="number" name="don" id="don" value="{{ roles_config.don }}" min="0" readonly>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('don', 1)">+</button>
+                    </div>
+
+                    <div class="role-item">
+                        <label>Doctor:</label>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('doctor', -1)">-
+                        </button>
+                        <input type="number" name="doctor" id="doctor" value="{{ roles_config.doctor }}" min="0"
+                               readonly>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('doctor', 1)">+
+                        </button>
+                    </div>
+
+                    <div class="role-item">
+                        <label>Sheriff:</label>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('sheriff', -1)">-
+                        </button>
+                        <input type="number" name="sheriff" id="sheriff" value="{{ roles_config.sheriff }}" min="0"
+                               readonly>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('sheriff', 1)">+
+                        </button>
+                    </div>
+
+                    <div class="role-item">
+                        <label>Maniac:</label>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('maniac', -1)">-
+                        </button>
+                        <input type="number" name="maniac" id="maniac" value="{{ roles_config.maniac }}" min="0"
+                               readonly>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('maniac', 1)">+
+                        </button>
+                    </div>
+
+                    <div class="role-item">
+                        <label>Kamikaze:</label>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('kamikaze', -1)">-
+                        </button>
+                        <input type="number" name="kamikaze" id="kamikaze" value="{{ roles_config.kamikaze }}" min="0"
+                               readonly>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('kamikaze', 1)">+
+                        </button>
+                    </div>
+
+                    <div class="role-item">
+                        <label>Villager:</label>
+                        <span id="villager-count">{{ roles_config.villager }}</span>
+                        <input type="hidden" name="villager" id="villager" value="{{ roles_config.villager }}">
+                        <small class="text-muted">(auto-calculated)</small>
+                    </div>
+
+                    <button type="submit" id="start-game" class="btn btn-primary btn-lg btn-block mt-3">Start Game
+                    </button>
+                </form>
+            </div>
         {% else %}
-        <p>No players yet</p>
-        {% endfor %}
+            <form action="{{ url_for('host_bp.end_game', code=code ) }}" method="post">
+                <button id="end-game" class="btn btn-danger btn-lg btn-block mt-3">End Game</button>
+            </form>
+        {% endif %}
     </div>
-    {% if status == "waiting" %}
-    <form action="{{ url_for('host_bp.start_game', code=code ) }}" method="post">
-        <button id="start-game" class="btn btn-primary btn-lg btn-block mt-3">Start Game</button>
-    </form>
-    {% else %}
-    <form action="{{ url_for('host_bp.end_game', code=code ) }}" method="post">
-        <button id="start-game" class="btn btn-primary btn-lg btn-block mt-3">End Game</button>
-    </form>
-    {% endif %}
-</div>
 
-<script type="text/javascript" charset="utf-8">
-    var socket = io();
-    var roomCode = "{{ code }}";
+    <script type="text/javascript" charset="utf-8">
+        var socket = io();
+        var roomCode = "{{ code }}";
+        var playerCount = {{ player_count }};
 
-    socket.on('connect', function () {
-        socket.emit('join_room', { room: roomCode });
-    });
-
-    socket.on('update_player_list', function (data) {
-        var playerList = document.getElementById("player-list");
-        playerList.innerHTML = "";
-
-        data.players.forEach(function (player) {
-            var playerItem = document.createElement("div");
-            playerItem.className = "player-item";
-            playerItem.innerHTML = "<span>Player: " + player.name + "</span><span>Role: " + player.role + "</span>";
-            playerList.appendChild(playerItem);
+        socket.on('connect', function () {
+            socket.emit('join_room', {room: roomCode});
         });
-    });
-</script>
+
+        socket.on('update_player_list', function (data) {
+            var playerList = document.getElementById("player-list");
+            playerList.innerHTML = "<h3>Players (" + data.players.length + ")</h3>";
+
+            data.players.forEach(function (player) {
+                var playerItem = document.createElement("div");
+                playerItem.className = "player-item";
+                playerItem.innerHTML = "<span>Player: " + player.name + "</span><span>Role: " + player.role + "</span>";
+                playerList.appendChild(playerItem);
+            });
+
+            playerCount = data.players.length;
+            updateVillagerCount();
+        });
+
+        function changeRole(role, delta) {
+            var input = document.getElementById(role);
+            var currentValue = parseInt(input.value);
+            var newValue = Math.max(0, currentValue + delta);
+
+            var totalRoles = calculateTotalRoles();
+
+            if (delta > 0 && totalRoles >= playerCount) {
+                alert('Cannot add more roles. Total roles cannot exceed number of players.');
+                return;
+            }
+
+            input.value = newValue;
+            updateVillagerCount();
+        }
+
+        function calculateTotalRoles() {
+            var roles = ['mafia', 'don', 'doctor', 'sheriff', 'maniac', 'kamikaze'];
+            var total = 0;
+            roles.forEach(function (role) {
+                total += parseInt(document.getElementById(role).value);
+            });
+            return total;
+        }
+
+        function updateVillagerCount() {
+            var totalSpecialRoles = calculateTotalRoles();
+            var villagerCount = Math.max(0, playerCount - totalSpecialRoles);
+
+            document.getElementById('villager-count').textContent = villagerCount;
+            document.getElementById('villager').value = villagerCount;
+            document.getElementById('total-roles').textContent = totalSpecialRoles;
+
+            var startButton = document.getElementById('start-game');
+            if (playerCount < 6) {
+                startButton.disabled = true;
+                startButton.textContent = 'Need at least 6 players';
+            } else {
+                startButton.disabled = false;
+                startButton.textContent = 'Start Game';
+            }
+        }
+    </script>
 {% endblock %}
