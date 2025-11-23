@@ -1,0 +1,32 @@
+services:
+  mafia_app:
+    build: .
+    container_name: mafia_app
+    expose:
+      - "8000"
+    volumes:
+      - ./static:/app/static
+    env_file:
+      - .env
+
+  nginx:
+    image: nginx:alpine
+    container_name: mafia_nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./static:/app/static:ro
+      - ./certbot/www:/var/www/certbot:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+    depends_on:
+      - mafia_app
+
+  certbot:
+    image: certbot/certbot
+    container_name: mafia_certbot
+    volumes:
+      - ./certbot/www:/var/www/certbot:rw
+      - ./certbot/conf:/etc/letsencrypt:rw
