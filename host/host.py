@@ -29,8 +29,8 @@ def get_default_roles_config(num_players):
             config["villager"] = num_players - total_special
             return config
 
-    return {"mafia": 1, "don": 0, "doctor": 1, "sheriff": 1, "maniac": 0, "kamikaze": 0,
-            "villager": max(0, num_players - 3)}
+    return {"mafia": 0, "don": 0, "doctor": 0, "sheriff": 0, "maniac": 0, "kamikaze": 0,
+            "villager": max(0, num_players)}
 
 
 @host_bp.route("/<code>")
