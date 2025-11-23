@@ -38,7 +38,7 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "docker-compose.yml"
-          target: "/projects/Mafia_Game_for_holbies"
+          target: "/home/abil/projects/Mafia_Game_for_holbies"
 
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@master
@@ -47,7 +47,7 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /projects/Mafia_Game_for_holbies
+            cd /home/abil/projects/Mafia_Game_for_holbies
 
             docker compose pull
             docker compose up -d --remove-orphans
