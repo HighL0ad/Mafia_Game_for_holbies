@@ -87,7 +87,7 @@
             <button type="submit" id="start-game" class="btn btn-success btn-lg btn-block mt-3">Start Game
             </button>
         </form>
-        
+
         <form action="{{ url_for('host_bp.end_game', code=code ) }}" method="post">
             <button id="end-game" class="btn btn-danger btn-lg btn-block mt-3">End Game</button>
         </form>
@@ -110,7 +110,7 @@
 
     socket.on('update_player_list', function (data) {
         var playerList = document.getElementById("player-list");
-        
+
         playerList.innerHTML = "<h3>Players (" + data.players.length + ")</h3>";
 
         data.players.forEach(function (player) {
@@ -183,3 +183,4 @@
         }
     }
 </script>
+{% endblock %}
