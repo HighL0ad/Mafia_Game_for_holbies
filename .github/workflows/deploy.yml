@@ -43,6 +43,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "docker-compose.yml,nginx/default.conf"
           target: ${{ env.DEPLOY_PATH }}
+          overwrite: true
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@master
