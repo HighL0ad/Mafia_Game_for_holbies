@@ -18,7 +18,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
@@ -28,20 +28,28 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy Compose file to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "docker-compose.yml"
+          target: "/projects/Mafia_Game_for_holbies"
+
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: docker stop mafia-game || true
-            docker rm mafia-game || true
+          script: |
+            cd /projects/Mafia_Game_for_holbies
 
-            docker rmi ${{ secrets.DOCKER_USERNAME }}/mafia-game:latest || true
-            docker pull ${{ secrets.DOCKER_USERNAME }}/mafia-game:latest
+            docker compose pull
+            docker compose up -d --remove-orphans
 
-            docker run -d \
-            --name mafia-game \
-            --restart unless-stopped \
-            -p 80:5000 \
-            ${{ secrets.DOCKER_USERNAME }}/mafia-game:latest
+            docker image prune -f
