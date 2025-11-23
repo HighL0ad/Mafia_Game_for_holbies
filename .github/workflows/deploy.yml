@@ -54,5 +54,10 @@ jobs:
           script: |
             cd ${{ env.DEPLOY_PATH }}
             docker compose pull
+
+            docker compose down
+
+            docker volume rm mafia_game_for_holbies_static_volume || true
+
             docker compose up -d --remove-orphans
             docker image prune -f
