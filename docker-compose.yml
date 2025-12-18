@@ -10,6 +10,7 @@ services:
       - .env
     networks:
       - web_gateway
+    restart: always
 
 networks:
   web_gateway:
