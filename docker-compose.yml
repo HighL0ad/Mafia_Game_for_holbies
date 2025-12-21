@@ -4,8 +4,6 @@ services:
     container_name: mafia-game
     expose:
       - "8000"
-    volumes:
-      - static_volume:/app/static
     env_file:
       - .env
     networks:
@@ -15,6 +13,3 @@ services:
 networks:
   web_gateway:
     external: true
-
-volumes:
-  static_volume:
