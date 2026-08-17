@@ -67,7 +67,7 @@
 </div>
 
 <!-- Night / Phase Fullscreen Shroud for Players -->
-<div id="player-phase-overlay" class="player-phase-overlay">
+<div id="player-phase-overlay" class="player-phase-overlay" style="display: none;">
     <div class="phase-overlay-icon" id="phase-overlay-icon">
         <i class="fa-solid fa-moon"></i>
     </div>
@@ -81,7 +81,7 @@
 </div>
 
 <!-- Live Voting Modal for Players -->
-<div id="player-voting-modal" class="player-voting-modal">
+<div id="player-voting-modal" class="player-voting-modal" style="display: none;">
     <div class="voting-modal-card">
         <div class="voting-timer-circle" id="voting-timer-display">30</div>
         <h3 style="font-family: var(--font-heading); margin-bottom: 6px;" data-i18n="voting_overlay_title">Səsvermə vaxtı!</h3>
@@ -193,7 +193,9 @@
     }
 
     function closePhaseOverlay() {
-        document.getElementById('player-phase-overlay').classList.remove('show');
+        const overlay = document.getElementById('player-phase-overlay');
+        overlay.classList.remove('show');
+        overlay.style.display = 'none';
     }
 
     socket.on('connect', function () {
@@ -228,6 +230,7 @@
             abstainBtn.querySelector('i').className = 'fa-regular fa-circle';
         }
 
+        modal.style.display = 'flex';
         modal.classList.add('show');
         sounds.playVoting();
         if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
@@ -272,6 +275,7 @@
         clearInterval(votingInterval);
         const modal = document.getElementById('player-voting-modal');
         modal.classList.remove('show');
+        modal.style.display = 'none';
 
         if (data.is_tie || !data.winner_name) {
             showToast(t('voting_tie'), 'info', 6000);
@@ -292,18 +296,21 @@
             icon.innerHTML = '<i class="fa-solid fa-moon"></i>';
             title.textContent = t('night_overlay_title');
             desc.textContent = t('night_overlay_subtitle');
+            overlay.style.display = 'flex';
             overlay.classList.add('show');
             sounds.playNight();
             sendPushNotification(t('night_overlay_title'), t('night_overlay_subtitle'));
             if (navigator.vibrate) navigator.vibrate([150, 100, 150]);
         } else if (data.phase === 'day') {
             overlay.classList.remove('show');
+            overlay.style.display = 'none';
             sounds.playDay();
             showToast(`${t('phase_day_short')} #${data.day_number}!`, 'success');
             sendPushNotification(`${t('phase_day_short')} #${data.day_number}!`, t('phase_day'));
             if (navigator.vibrate) navigator.vibrate(100);
         } else if (data.phase === 'voting') {
             overlay.classList.remove('show');
+            overlay.style.display = 'none';
             sounds.playVoting();
             showToast(t('phase_voting'), 'info');
             sendPushNotification(t('voting_overlay_title'), t('voting_overlay_subtitle'));
