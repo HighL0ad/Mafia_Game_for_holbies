@@ -848,26 +848,41 @@ body {
     z-index: 9999;
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 8px;
     pointer-events: none;
+    width: max-content;
+    max-width: 92vw;
 }
 
 .toast-item {
-    background: rgba(20, 23, 32, 0.95);
-    backdrop-filter: blur(12px);
+    background: rgba(18, 22, 32, 0.96);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border-active);
     color: #ffffff;
-    padding: 12px 20px;
-    border-radius: var(--radius-md);
-    font-size: 0.9rem;
-    font-weight: 500;
-    box-shadow: var(--shadow-glow);
-    display: flex;
+    padding: 9px 18px;
+    border-radius: 999px;
+    font-size: 0.86rem;
+    font-weight: 600;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(230, 57, 70, 0.2);
+    display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90vw;
     opacity: 0;
     transform: translateY(20px);
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toast-item span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: calc(90vw - 40px);
 }
 
 .toast-item.show {
@@ -1082,15 +1097,15 @@ body {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(8, 10, 14, 0.95);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
+    background: rgba(5, 7, 12, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     z-index: 600;
     display: none;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 24px 16px;
+    padding: 20px 16px;
     animation: fadeIn 0.3s ease-out forwards;
 }
 
@@ -1099,48 +1114,56 @@ body {
 }
 
 .voting-modal-card {
-    background: var(--bg-surface-elevated);
-    border: 1px solid rgba(58, 134, 255, 0.4);
-    border-radius: var(--radius-lg);
-    padding: 26px 20px;
-    max-width: 380px;
+    background: linear-gradient(180deg, rgba(24, 29, 44, 0.96) 0%, rgba(14, 18, 28, 0.98) 100%);
+    border: 1px solid rgba(58, 134, 255, 0.45);
+    border-radius: 24px;
+    padding: 24px 20px;
+    max-width: 390px;
     width: 100%;
     text-align: center;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(58, 134, 255, 0.2);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 35px rgba(58, 134, 255, 0.25);
 }
 
 .voting-timer-circle {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 54px;
-    height: 54px;
+    width: 58px;
+    height: 58px;
     border-radius: 50%;
-    background: rgba(58, 134, 255, 0.15);
+    background: radial-gradient(circle, rgba(58, 134, 255, 0.25) 0%, rgba(58, 134, 255, 0.05) 100%);
     border: 2px solid var(--color-voting);
     color: #ffffff;
     font-family: var(--font-heading);
-    font-size: 1.3rem;
-    font-weight: 700;
+    font-size: 1.4rem;
+    font-weight: 800;
     margin-bottom: 12px;
+    box-shadow: 0 0 20px rgba(58, 134, 255, 0.4);
+    animation: pulseTimer 1s infinite alternate;
+}
+
+@keyframes pulseTimer {
+    0% { transform: scale(0.96); }
+    100% { transform: scale(1.04); }
 }
 
 .voting-candidate-list {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    margin: 18px 0;
-    max-height: 260px;
+    margin: 16px 0;
+    max-height: 270px;
     overflow-y: auto;
+    padding-right: 4px;
 }
 
 .vote-btn {
-    padding: 14px 16px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.09);
     border-radius: var(--radius-md);
     color: #ffffff;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
     display: flex;
@@ -1150,7 +1173,7 @@ body {
 }
 
 .vote-btn:hover {
-    background: var(--bg-surface-hover);
+    background: rgba(58, 134, 255, 0.12);
     border-color: var(--color-voting);
 }
 
@@ -1164,6 +1187,12 @@ body {
     color: var(--color-voting);
 }
 
+.vote-btn.disabled, .vote-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 /* Result Modal Banner */
 .voting-result-banner {
     background: var(--bg-surface);
@@ -1172,4 +1201,77 @@ body {
     padding: 16px;
     margin-top: 14px;
     animation: fadeIn 0.3s ease;
+}
+
+/* Ghost / Spectator Mode Styles for Dead Players */
+.ghost-roster-container {
+    width: 100%;
+    max-width: 440px;
+    margin-top: 24px;
+    background: rgba(20, 24, 35, 0.8);
+    border: 1px solid rgba(155, 93, 229, 0.35);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 25px rgba(155, 93, 229, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ghost-roster-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 10px;
+}
+
+.ghost-roster-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-night);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ghost-roster-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 280px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.ghost-player-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 8px 12px;
+    font-size: 0.88rem;
+}
+
+.ghost-player-row.dead {
+    opacity: 0.55;
+}
+
+.ghost-status-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+.ghost-status-badge.alive {
+    background: rgba(6, 214, 160, 0.15);
+    color: var(--color-success);
+}
+
+.ghost-status-badge.dead {
+    background: rgba(230, 57, 70, 0.15);
+    color: var(--color-danger);
 }

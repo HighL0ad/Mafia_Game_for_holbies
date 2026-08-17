@@ -169,12 +169,13 @@ def toggle_player_status(code: str, player_id: int):
             "player_id": player.id,
             "player_name": player.name,
             "is_alive": player.is_alive,
-            "stats": stats
+            "stats": stats,
+            "all_players": [p.to_dict() for p in room.players]
         },
         room=code
     )
 
-    return jsonify({"success": True, "player_id": player.id, "is_alive": player.is_alive, "stats": stats})
+    return jsonify({"success": True, "player_id": player.id, "is_alive": player.is_alive, "stats": stats, "all_players": [p.to_dict() for p in room.players]})
 
 
 @host_bp.post("/end-game/<code>")

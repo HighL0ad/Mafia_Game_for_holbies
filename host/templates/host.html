@@ -124,9 +124,15 @@
         <div id="voting-winner-card" class="voting-result-banner" style="display: none;">
             <h5 style="color: var(--color-voting); font-weight: 700; margin-bottom: 6px;" data-i18n="voted_out_title">Səsvermənin nəticəsi:</h5>
             <p id="voting-winner-text" style="font-size: 1rem; font-weight: 600;"></p>
-            <div style="display: flex; gap: 8px; margin-top: 12px;">
-                <button type="button" class="btn btn-danger" id="btn-eliminate-voted" style="padding: 10px;" onclick="confirmVotedElimination()">
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px;">
+                <button type="button" class="btn btn-danger" id="btn-eliminate-voted" style="padding: 9px 14px; font-size: 0.88rem;" onclick="confirmVotedElimination()">
                     <i class="fa-solid fa-skull"></i> <span data-i18n="btn_confirm_elim">Çıxarılmanı təsdiq et</span>
+                </button>
+                <button type="button" class="btn btn-secondary" id="btn-pardon-voted" style="padding: 9px 14px; font-size: 0.88rem;" onclick="pardonVotedPlayer()">
+                    <i class="fa-solid fa-hand-holding-heart"></i> <span data-i18n="btn_pardon">Bağışla (Oyunda saxla)</span>
+                </button>
+                <button type="button" class="btn btn-secondary" id="btn-revote" style="padding: 9px 14px; font-size: 0.88rem;" onclick="revoteVotingSession()">
+                    <i class="fa-solid fa-rotate-left"></i> <span data-i18n="btn_revote">Yenidən səsvermə</span>
                 </button>
             </div>
         </div>
@@ -485,6 +491,17 @@
             togglePlayerStatus(roomCode, currentVotingWinnerId);
             document.getElementById('voting-winner-card').style.display = 'none';
         }
+    }
+
+    function pardonVotedPlayer() {
+        document.getElementById('voting-winner-card').style.display = 'none';
+        showToast(t('pardon_toast'), 'success');
+        sounds.playClick();
+    }
+
+    function revoteVotingSession() {
+        document.getElementById('voting-winner-card').style.display = 'none';
+        openVotingSession();
     }
 
     socket.on('update_player_list', function (data) {

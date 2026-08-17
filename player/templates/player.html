@@ -64,6 +64,36 @@
         <i class="fa-solid fa-skull"></i>
         <span data-i18n="you_are_eliminated">Siz bu oyundan çıxarıldınız</span>
     </div>
+
+    <!-- Ghost / Spectator Mode: Reveals other players' roles to eliminated players -->
+    <div id="ghost-roster-container" class="ghost-roster-container" style="{{ 'display: flex;' if not player.is_alive else 'display: none;' }}">
+        <div class="ghost-roster-header">
+            <div class="ghost-roster-title">
+                <i class="fa-solid fa-eye"></i> <span data-i18n="ghost_mode_title">👁️ Müşahidəçi Rejimi (Bütün Rollar)</span>
+            </div>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 0.82rem; margin: 0;" data-i18n="ghost_mode_desc">
+            Siz oyundan çıxarılmısınız, lakin bütün oyunçuların rollarını canlı görə bilərsiniz:
+        </p>
+        <div id="ghost-player-list" class="ghost-roster-grid">
+            {% for item in all_players %}
+            <div class="ghost-player-row {{ 'dead' if not item.is_alive else '' }}">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-user-secret" style="color: var(--text-muted);"></i>
+                    <strong style="color: #ffffff;">{{ item.name }}</strong>
+                    {% if item.role %}
+                    <span class="player-role-tag role-tag-{{ item.role.lower() }}" style="margin: 0; padding: 2px 8px; font-size: 0.75rem;">
+                        {{ item.role }}
+                    </span>
+                    {% endif %}
+                </div>
+                <span class="ghost-status-badge {{ 'alive' if item.is_alive else 'dead' }}">
+                    {{ 'Sağdır' if item.is_alive else 'Çıxarılıb' }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
 </div>
 
 <!-- Night / Phase Fullscreen Shroud for Players -->
@@ -84,8 +114,8 @@
 <div id="player-voting-modal" class="player-voting-modal" style="display: none;">
     <div class="voting-modal-card">
         <div class="voting-timer-circle" id="voting-timer-display">30</div>
-        <h3 style="font-family: var(--font-heading); margin-bottom: 6px;" data-i18n="voting_overlay_title">Səsvermə vaxtı!</h3>
-        <p style="color: var(--text-secondary); font-size: 0.85rem;" data-i18n="voting_overlay_subtitle">Kimin şəhərdən çıxarılacağına səs verin.</p>
+        <h3 style="font-family: var(--font-heading); margin-bottom: 6px;" id="voting-header-title" data-i18n="voting_overlay_title">Səsvermə vaxtı!</h3>
+        <p style="color: var(--text-secondary); font-size: 0.85rem;" id="voting-header-desc" data-i18n="voting_overlay_subtitle">Kimin şəhərdən çıxarılacağına səs verin.</p>
         
         <div class="voting-candidate-list" id="voting-candidate-list">
             <!-- Candidate buttons injected dynamically -->
@@ -103,9 +133,11 @@
     const playerName = "{{ player.name }}";
     const playerId = {{ player.id }};
     const roomCode = "{{ player.room_code }}";
+    let isPlayerAlive = {{ 'true' if player.is_alive else 'false' }};
     let currentRoleKey = "{{ player.role.lower() if player.role else '' }}";
     let myCurrentVote = null;
     let votingInterval = null;
+    let votingActive = false;
 
     const roleIcons = {
         'mafia': 'fa-solid fa-gun',
@@ -204,10 +236,19 @@
 
     // Live Voting Socket Events
     socket.on('voting_started', function(data) {
+        // Dead players do not vote
+        if (!isPlayerAlive) return;
+
         myCurrentVote = null;
+        votingActive = true;
         const modal = document.getElementById('player-voting-modal');
         const list = document.getElementById('voting-candidate-list');
         const timerEl = document.getElementById('voting-timer-display');
+        const titleEl = document.getElementById('voting-header-title');
+        const descEl = document.getElementById('voting-header-desc');
+
+        if (titleEl) titleEl.textContent = t('voting_overlay_title');
+        if (descEl) descEl.textContent = t('voting_overlay_subtitle');
         
         list.innerHTML = '';
         data.candidates.forEach(c => {
@@ -216,7 +257,10 @@
             btn.className = 'vote-btn';
             btn.dataset.id = c.id;
             btn.innerHTML = `
-                <span>${c.name}</span>
+                <span style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-user" style="color: var(--color-voting); font-size: 0.85rem;"></i>
+                    ${c.name}
+                </span>
                 <i class="fa-regular fa-circle"></i>
             `;
             btn.onclick = function() { castVote(c.id, this); };
@@ -227,6 +271,7 @@
         const abstainBtn = document.getElementById('btn-abstain');
         if (abstainBtn) {
             abstainBtn.className = 'vote-btn';
+            abstainBtn.disabled = false;
             abstainBtn.querySelector('i').className = 'fa-regular fa-circle';
         }
 
@@ -244,22 +289,37 @@
             if (timeLeft <= 5 && timeLeft > 0) sounds.playTick();
             if (timeLeft <= 0) {
                 clearInterval(votingInterval);
+                lockVotingInputs();
             }
         }, 1000);
     });
 
+    function lockVotingInputs() {
+        votingActive = false;
+        const timerEl = document.getElementById('voting-timer-display');
+        const descEl = document.getElementById('voting-header-desc');
+        if (timerEl) timerEl.textContent = "0";
+        if (descEl) descEl.innerHTML = `<span style="color: var(--accent-crimson); font-weight: 700;">${t('voting_time_up')}</span>`;
+        
+        document.querySelectorAll('.vote-btn').forEach(b => {
+            b.disabled = true;
+            b.classList.add('disabled');
+        });
+    }
+
     function castVote(targetId, btnEl) {
+        if (!votingActive) return;
         myCurrentVote = targetId;
         sounds.playClick();
 
         document.querySelectorAll('.vote-btn').forEach(b => {
             b.classList.remove('selected');
-            const icon = b.querySelector('i');
+            const icon = b.querySelector('i:last-child');
             if (icon) icon.className = 'fa-regular fa-circle';
         });
 
         btnEl.classList.add('selected');
-        const icon = btnEl.querySelector('i');
+        const icon = btnEl.querySelector('i:last-child');
         if (icon) icon.className = 'fa-solid fa-circle-check';
 
         socket.emit('submit_vote', {
@@ -273,6 +333,7 @@
 
     socket.on('voting_ended', function(data) {
         clearInterval(votingInterval);
+        votingActive = false;
         const modal = document.getElementById('player-voting-modal');
         modal.classList.remove('show');
         modal.style.display = 'none';
@@ -330,22 +391,65 @@
                     navigator.vibrate([100, 50, 100]);
                 }
             }
+
+            if (!isPlayerAlive) {
+                renderGhostRoster(data.players);
+            }
         }
     });
 
+    function renderGhostRoster(players) {
+        const container = document.getElementById('ghost-roster-container');
+        const list = document.getElementById('ghost-player-list');
+        if (!container || !list) return;
+
+        container.style.display = 'flex';
+        list.innerHTML = '';
+
+        players.forEach(p => {
+            const row = document.createElement('div');
+            row.className = `ghost-player-row ${!p.is_alive ? 'dead' : ''}`;
+            
+            const roleKey = p.role ? p.role.toLowerCase() : '';
+            const roleTag = roleKey ? `<span class="player-role-tag role-tag-${roleKey}" style="margin: 0; padding: 2px 8px; font-size: 0.75rem;">${t('role_' + roleKey)}</span>` : '';
+            const statusBadge = p.is_alive 
+                ? `<span class="ghost-status-badge alive">${t('status_alive_badge')}</span>` 
+                : `<span class="ghost-status-badge dead">${t('status_dead_badge')}</span>`;
+
+            row.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-user-secret" style="color: var(--text-muted);"></i>
+                    <strong style="color: #ffffff;">${p.name}</strong>
+                    ${roleTag}
+                </div>
+                ${statusBadge}
+            `;
+            list.appendChild(row);
+        });
+    }
+
     socket.on('update_player_status', function (data) {
         if (data.player_id === playerId) {
+            isPlayerAlive = data.is_alive;
             const banner = document.getElementById('eliminated-banner');
+            const ghostContainer = document.getElementById('ghost-roster-container');
+
             if (data.is_alive) {
                 banner.classList.remove('show');
+                if (ghostContainer) ghostContainer.style.display = 'none';
                 showToast(t('player_restored_toast'), 'success');
                 sendPushNotification(t('app_title'), t('player_restored_toast'));
             } else {
                 banner.classList.add('show');
+                if (ghostContainer) ghostContainer.style.display = 'flex';
                 sounds.playEliminated();
                 showToast(t('player_eliminated_toast'), 'error');
                 sendPushNotification(t('you_are_eliminated'), t('player_eliminated_toast'));
             }
+        }
+
+        if (data.all_players && (!isPlayerAlive || data.player_id === playerId)) {
+            renderGhostRoster(data.all_players);
         }
     });
 
