@@ -121,9 +121,14 @@
             <!-- Candidate buttons injected dynamically -->
         </div>
 
-        <button type="button" class="vote-btn" id="btn-abstain" onclick="castVote(0, this)">
-            <span data-i18n="abstain_vote">Heç kimə (Bitərəf)</span>
-            <i class="fa-regular fa-circle"></i>
+        <button type="button" class="vote-btn vote-btn-abstain" id="btn-abstain" onclick="castVote(0, this)">
+            <div class="vote-btn-left">
+                <div class="vote-avatar-icon"><i class="fa-solid fa-ban"></i></div>
+                <span data-i18n="abstain_vote">Heç kimə (Bitərəf)</span>
+            </div>
+            <div class="vote-radio-icon">
+                <i class="fa-regular fa-circle"></i>
+            </div>
         </button>
     </div>
 </div>
@@ -257,11 +262,13 @@
             btn.className = 'vote-btn';
             btn.dataset.id = c.id;
             btn.innerHTML = `
-                <span style="display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-user" style="color: var(--color-voting); font-size: 0.85rem;"></i>
-                    ${c.name}
-                </span>
-                <i class="fa-regular fa-circle"></i>
+                <div class="vote-btn-left">
+                    <div class="vote-avatar-icon">${c.name.charAt(0).toUpperCase()}</div>
+                    <span>${c.name}</span>
+                </div>
+                <div class="vote-radio-icon">
+                    <i class="fa-regular fa-circle"></i>
+                </div>
             `;
             btn.onclick = function() { castVote(c.id, this); };
             list.appendChild(btn);
@@ -270,9 +277,10 @@
         // Reset abstain button
         const abstainBtn = document.getElementById('btn-abstain');
         if (abstainBtn) {
-            abstainBtn.className = 'vote-btn';
+            abstainBtn.className = 'vote-btn vote-btn-abstain';
             abstainBtn.disabled = false;
-            abstainBtn.querySelector('i').className = 'fa-regular fa-circle';
+            const icon = abstainBtn.querySelector('.vote-radio-icon i');
+            if (icon) icon.className = 'fa-regular fa-circle';
         }
 
         modal.style.display = 'flex';
@@ -314,12 +322,12 @@
 
         document.querySelectorAll('.vote-btn').forEach(b => {
             b.classList.remove('selected');
-            const icon = b.querySelector('i:last-child');
+            const icon = b.querySelector('.vote-radio-icon i');
             if (icon) icon.className = 'fa-regular fa-circle';
         });
 
         btnEl.classList.add('selected');
-        const icon = btnEl.querySelector('i:last-child');
+        const icon = btnEl.querySelector('.vote-radio-icon i');
         if (icon) icon.className = 'fa-solid fa-circle-check';
 
         socket.emit('submit_vote', {
