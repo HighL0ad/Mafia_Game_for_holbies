@@ -3,10 +3,10 @@ services:
     image: ghcr.io/highl0ad/mafia_game:latest
     container_name: mafia_web
     restart: always
+    env_file:
+      - .env
     environment:
       - FLASK_ENV=production
-      - SECRET_KEY=supersecretkeymafia_prod
-      - DATABASE_URI=sqlite:////app/instance/mafia.db
       - TZ=Asia/Baku
     volumes:
       - mafia_data:/app/instance
