@@ -509,7 +509,7 @@
         const oldCount = playerCount;
         playerCount = data.players.length;
 
-        if (playerCount > oldCount && oldCount > 0) {
+        if (playerCount > oldCount) {
             sounds.playJoin();
         }
 
