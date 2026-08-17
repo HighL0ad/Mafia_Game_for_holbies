@@ -81,6 +81,56 @@
             </button>
         </div>
     </div>
+
+    <!-- Host Live Voting Management Card -->
+    <div class="host-voting-box" id="host-voting-box" style="{{ 'display: block;' if phase == 'voting' else 'display: none;' }}">
+        <div class="section-header" style="margin-bottom: 8px;">
+            <h4 style="font-size: 1rem; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-check-to-slot" style="color: var(--color-voting);"></i>
+                <span data-i18n="voting_box_title">Canlı Səsvermə</span>
+            </h4>
+            <button type="button" class="icon-action-btn" style="padding: 4px 10px; font-size: 0.78rem;" onclick="selectAllCandidates()">
+                <span data-i18n="select_all_btn">Hamısını seç</span>
+            </button>
+        </div>
+        
+        <p style="color: var(--text-secondary); font-size: 0.85rem;" data-i18n="select_candidates_hint">Səsverməyə çıxarılan oyunçuları seçin:</p>
+        
+        <!-- Candidate Chips -->
+        <div class="candidate-selector-grid" id="candidate-chips-container">
+            {% for item in players %}
+            {% if item.is_alive %}
+            <div class="candidate-chip selected" data-id="{{ item.id }}" data-name="{{ item.name }}" onclick="toggleCandidateChip(this)">
+                <i class="fa-solid fa-check"></i> <span>{{ item.name }}</span>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+
+        <!-- Start / Stop Voting Buttons -->
+        <div style="display: flex; gap: 10px;" id="voting-controls-buttons">
+            <button type="button" class="btn btn-primary" id="start-voting-btn" onclick="openVotingSession()">
+                <i class="fa-solid fa-play"></i> <span data-i18n="btn_open_voting">Səsverməni başlat (30 san)</span>
+            </button>
+            <button type="button" class="btn btn-danger" id="close-voting-btn" style="display: none;" onclick="closeVotingSession()">
+                <i class="fa-solid fa-stop"></i> <span data-i18n="btn_close_voting">Səsverməni dayandır</span>
+            </button>
+        </div>
+
+        <!-- Live Tally Results in Host View -->
+        <div id="live-tally-container" class="vote-tally-list" style="display: none;"></div>
+
+        <!-- Voting Winner Banner -->
+        <div id="voting-winner-card" class="voting-result-banner" style="display: none;">
+            <h5 style="color: var(--color-voting); font-weight: 700; margin-bottom: 6px;" data-i18n="voted_out_title">Səsvermənin nəticəsi:</h5>
+            <p id="voting-winner-text" style="font-size: 1rem; font-weight: 600;"></p>
+            <div style="display: flex; gap: 8px; margin-top: 12px;">
+                <button type="button" class="btn btn-danger" id="btn-eliminate-voted" style="padding: 10px;" onclick="confirmVotedElimination()">
+                    <i class="fa-solid fa-skull"></i> <span data-i18n="btn_confirm_elim">Çıxarılmanı təsdiq et</span>
+                </button>
+            </div>
+        </div>
+    </div>
     {% endif %}
 
     <!-- Players Section -->
@@ -262,6 +312,7 @@
     const isStarted = "{{ status }}" === "started";
     let currentPhase = "{{ phase }}";
     let currentDayNum = {{ day_number }};
+    let currentVotingWinnerId = null;
 
     function updateStatusPill() {
         const pill = document.getElementById('status-pill');
@@ -287,6 +338,11 @@
                 currentPhase = data.phase;
                 currentDayNum = data.day_number;
                 updatePhaseUI(data.phase, data.day_number);
+
+                const voteBox = document.getElementById('host-voting-box');
+                if (voteBox) {
+                    voteBox.style.display = (newPhase === 'voting') ? 'block' : 'none';
+                }
 
                 if (newPhase === 'night') {
                     sounds.playNight();
@@ -314,6 +370,123 @@
         if (nightBtn) nightBtn.className = `phase-btn ${phase === 'night' ? 'active-night' : ''}`;
     }
 
+    // Live Voting Host Management
+    function toggleCandidateChip(el) {
+        el.classList.toggle('selected');
+        const icon = el.querySelector('i');
+        if (el.classList.contains('selected')) {
+            icon.className = 'fa-solid fa-check';
+        } else {
+            icon.className = 'fa-solid fa-plus';
+        }
+    }
+
+    function selectAllCandidates() {
+        document.querySelectorAll('.candidate-chip').forEach(el => {
+            el.classList.add('selected');
+            el.querySelector('i').className = 'fa-solid fa-check';
+        });
+    }
+
+    function openVotingSession() {
+        const selectedChips = document.querySelectorAll('.candidate-chip.selected');
+        const candidates = [];
+        selectedChips.forEach(chip => {
+            candidates.push({
+                id: parseInt(chip.dataset.id),
+                name: chip.dataset.name || chip.querySelector('span').textContent
+            });
+        });
+
+        if (candidates.length === 0) {
+            showToast(t('select_candidates_hint'), 'error');
+            return;
+        }
+
+        document.getElementById('start-voting-btn').style.display = 'none';
+        document.getElementById('close-voting-btn').style.display = 'inline-flex';
+        document.getElementById('voting-winner-card').style.display = 'none';
+
+        const tallyContainer = document.getElementById('live-tally-container');
+        tallyContainer.innerHTML = '';
+        tallyContainer.style.display = 'flex';
+
+        candidates.forEach(c => {
+            const row = document.createElement('div');
+            row.className = 'vote-tally-row';
+            row.id = `tally-row-${c.id}`;
+            row.innerHTML = `
+                <div class="tally-header">
+                    <span>${c.name}</span>
+                    <span id="tally-count-${c.id}">0</span>
+                </div>
+                <div class="tally-bar-track">
+                    <div class="tally-bar-fill" id="tally-bar-${c.id}"></div>
+                </div>
+            `;
+            tallyContainer.appendChild(row);
+        });
+
+        sounds.playVoting();
+        socket.emit('start_voting', {
+            room: roomCode,
+            candidates: candidates,
+            duration: 30
+        });
+
+        showToast(t('voting_in_progress'), 'info');
+    }
+
+    function closeVotingSession() {
+        socket.emit('close_voting', { room: roomCode });
+        document.getElementById('start-voting-btn').style.display = 'inline-flex';
+        document.getElementById('close-voting-btn').style.display = 'none';
+    }
+
+    socket.on('vote_update', function(data) {
+        if (data.tally) {
+            const total = Object.values(data.tally).reduce((a, b) => a + b, 0) || 1;
+            for (const [candId, count] of Object.entries(data.tally)) {
+                const countEl = document.getElementById(`tally-count-${candId}`);
+                const barEl = document.getElementById(`tally-bar-${candId}`);
+                if (countEl) countEl.textContent = count;
+                if (barEl) {
+                    const pct = Math.round((count / total) * 100);
+                    barEl.style.width = `${pct}%`;
+                }
+            }
+        }
+    });
+
+    socket.on('voting_ended', function(data) {
+        document.getElementById('start-voting-btn').style.display = 'inline-flex';
+        document.getElementById('close-voting-btn').style.display = 'none';
+
+        const winnerCard = document.getElementById('voting-winner-card');
+        const winnerText = document.getElementById('voting-winner-text');
+        const elimBtn = document.getElementById('btn-eliminate-voted');
+
+        winnerCard.style.display = 'block';
+
+        if (data.is_tie || !data.winner_name) {
+            winnerText.textContent = t('voting_tie');
+            elimBtn.style.display = 'none';
+            sounds.playTick();
+        } else {
+            currentVotingWinnerId = data.winner_id;
+            winnerText.innerHTML = `<strong>${data.winner_name}</strong> (${data.max_votes} səs) ${t('voted_out_desc')}`;
+            elimBtn.style.display = 'inline-flex';
+            sounds.playGong();
+        }
+    });
+
+    function confirmVotedElimination() {
+        if (currentVotingWinnerId) {
+            togglePlayerStatus(roomCode, currentVotingWinnerId);
+            document.getElementById('voting-winner-card').style.display = 'none';
+        }
+    }
+
     socket.on('update_player_list', function (data) {
         const playerList = document.getElementById("player-list");
         const oldCount = playerCount;
@@ -323,12 +496,26 @@
             sounds.playJoin();
         }
 
-
         const countBadge = document.getElementById('player-count-badge');
         if (countBadge) countBadge.textContent = playerCount;
 
         const countDisplay = document.getElementById('player-count-display');
         if (countDisplay) countDisplay.textContent = playerCount;
+
+        // Update candidate chips container if alive players changed
+        const chipsContainer = document.getElementById('candidate-chips-container');
+        if (chipsContainer) {
+            chipsContainer.innerHTML = '';
+            data.players.filter(p => p.is_alive).forEach(p => {
+                const chip = document.createElement('div');
+                chip.className = 'candidate-chip selected';
+                chip.dataset.id = p.id;
+                chip.dataset.name = p.name;
+                chip.onclick = function() { toggleCandidateChip(this); };
+                chip.innerHTML = `<i class="fa-solid fa-check"></i> <span>${p.name}</span>`;
+                chipsContainer.appendChild(chip);
+            });
+        }
 
         if (playerCount === 0) {
             playerList.innerHTML = `
@@ -479,7 +666,6 @@
             }
         }
     }
-
 
     // Copy Invite Link
     function copyInviteLink() {

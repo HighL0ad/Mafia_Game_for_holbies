@@ -43,6 +43,10 @@ def page_not_found(e):
     return render_template("404.html"), 404
 
 
+# In-memory Live Voting Sessions: room_code -> { "candidates": [...], "votes": { voter_id: target_id }, "open": bool }
+active_voting_sessions = {}
+
+
 @socketio.on("connect")
 def handle_connect():
     pass
@@ -62,7 +66,95 @@ def handle_leave_room(data):
         leave_room(room)
 
 
+@socketio.on("start_voting")
+def handle_start_voting(data):
+    room = str(data.get("room", ""))
+    candidates = data.get("candidates", [])
+    duration = int(data.get("duration", 30))
+    if room:
+        active_voting_sessions[room] = {
+            "candidates": candidates,
+            "votes": {},
+            "open": True
+        }
+        socketio.emit(
+            "voting_started",
+            {"candidates": candidates, "duration": duration},
+            room=room
+        )
+
+
+@socketio.on("submit_vote")
+def handle_submit_vote(data):
+    room = str(data.get("room", ""))
+    voter_id = data.get("voter_id")
+    target_id = data.get("target_id")
+    if room and room in active_voting_sessions and active_voting_sessions[room]["open"]:
+        active_voting_sessions[room]["votes"][voter_id] = target_id
+        
+        # Build live tally
+        tally = {c["id"]: 0 for c in active_voting_sessions[room]["candidates"]}
+        tally[0] = 0  # Abstain
+        for t_id in active_voting_sessions[room]["votes"].values():
+            if t_id is not None:
+                tally[t_id] = tally.get(t_id, 0) + 1
+
+        socketio.emit(
+            "vote_update",
+            {
+                "tally": tally,
+                "voters_count": len(active_voting_sessions[room]["votes"])
+            },
+            room=room
+        )
+
+
+@socketio.on("close_voting")
+def handle_close_voting(data):
+    room = str(data.get("room", ""))
+    if room and room in active_voting_sessions:
+        active_voting_sessions[room]["open"] = False
+        votes = active_voting_sessions[room]["votes"]
+        candidates = active_voting_sessions[room]["candidates"]
+        
+        tally = {c["id"]: 0 for c in candidates}
+        tally[0] = 0
+        for t_id in votes.values():
+            if t_id is not None:
+                tally[t_id] = tally.get(t_id, 0) + 1
+
+        cand_tally = {c["id"]: tally[c["id"]] for c in candidates}
+        if not cand_tally or max(cand_tally.values(), default=0) == 0:
+            winner_id = None
+            winner_name = None
+            max_votes = 0
+            is_tie = True
+        else:
+            max_votes = max(cand_tally.values())
+            top_cands = [cid for cid, count in cand_tally.items() if count == max_votes]
+            if len(top_cands) == 1:
+                winner_id = top_cands[0]
+                winner_obj = next((c for c in candidates if c["id"] == winner_id), None)
+                winner_name = winner_obj["name"] if winner_obj else None
+                is_tie = False
+            else:
+                winner_id = None
+                winner_name = None
+                is_tie = True
+
+        socketio.emit(
+            "voting_ended",
+            {
+                "winner_id": winner_id,
+                "winner_name": winner_name,
+                "max_votes": max_votes,
+                "is_tie": is_tie,
+                "tally": tally
+            },
+            room=room
+        )
+
+
 if __name__ == "__main__":
     print("Starting Mafia Game on http://0.0.0.0:8000 ...")
     socketio.run(app, host="0.0.0.0", port=8000, debug=Config.DEBUG, use_reloader=False)
-

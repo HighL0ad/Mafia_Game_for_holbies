@@ -80,12 +80,32 @@
     </button>
 </div>
 
+<!-- Live Voting Modal for Players -->
+<div id="player-voting-modal" class="player-voting-modal">
+    <div class="voting-modal-card">
+        <div class="voting-timer-circle" id="voting-timer-display">30</div>
+        <h3 style="font-family: var(--font-heading); margin-bottom: 6px;" data-i18n="voting_overlay_title">Səsvermə vaxtı!</h3>
+        <p style="color: var(--text-secondary); font-size: 0.85rem;" data-i18n="voting_overlay_subtitle">Kimin şəhərdən çıxarılacağına səs verin.</p>
+        
+        <div class="voting-candidate-list" id="voting-candidate-list">
+            <!-- Candidate buttons injected dynamically -->
+        </div>
+
+        <button type="button" class="vote-btn" id="btn-abstain" onclick="castVote(0, this)">
+            <span data-i18n="abstain_vote">Heç kimə (Bitərəf)</span>
+            <i class="fa-regular fa-circle"></i>
+        </button>
+    </div>
+</div>
+
 <script>
     const socket = io();
     const playerName = "{{ player.name }}";
     const playerId = {{ player.id }};
     const roomCode = "{{ player.room_code }}";
     let currentRoleKey = "{{ player.role.lower() if player.role else '' }}";
+    let myCurrentVote = null;
+    let votingInterval = null;
 
     const roleIcons = {
         'mafia': 'fa-solid fa-gun',
@@ -97,7 +117,7 @@
         'villager': 'fa-solid fa-users'
     };
 
-    // Push Notifications API (for when the phone screen is locked or app minimized)
+    // Push Notifications API
     function requestPushPermission() {
         if ("Notification" in window && Notification.permission === "default") {
             Notification.requestPermission();
@@ -178,6 +198,87 @@
 
     socket.on('connect', function () {
         socket.emit('join_room', { room: roomCode });
+    });
+
+    // Live Voting Socket Events
+    socket.on('voting_started', function(data) {
+        myCurrentVote = null;
+        const modal = document.getElementById('player-voting-modal');
+        const list = document.getElementById('voting-candidate-list');
+        const timerEl = document.getElementById('voting-timer-display');
+        
+        list.innerHTML = '';
+        data.candidates.forEach(c => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'vote-btn';
+            btn.dataset.id = c.id;
+            btn.innerHTML = `
+                <span>${c.name}</span>
+                <i class="fa-regular fa-circle"></i>
+            `;
+            btn.onclick = function() { castVote(c.id, this); };
+            list.appendChild(btn);
+        });
+
+        // Reset abstain button
+        const abstainBtn = document.getElementById('btn-abstain');
+        if (abstainBtn) {
+            abstainBtn.className = 'vote-btn';
+            abstainBtn.querySelector('i').className = 'fa-regular fa-circle';
+        }
+
+        modal.classList.add('show');
+        sounds.playVoting();
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+
+        let timeLeft = data.duration || 30;
+        if (timerEl) timerEl.textContent = timeLeft;
+        clearInterval(votingInterval);
+        votingInterval = setInterval(() => {
+            timeLeft--;
+            if (timerEl) timerEl.textContent = timeLeft;
+            if (timeLeft <= 5 && timeLeft > 0) sounds.playTick();
+            if (timeLeft <= 0) {
+                clearInterval(votingInterval);
+            }
+        }, 1000);
+    });
+
+    function castVote(targetId, btnEl) {
+        myCurrentVote = targetId;
+        sounds.playClick();
+
+        document.querySelectorAll('.vote-btn').forEach(b => {
+            b.classList.remove('selected');
+            const icon = b.querySelector('i');
+            if (icon) icon.className = 'fa-regular fa-circle';
+        });
+
+        btnEl.classList.add('selected');
+        const icon = btnEl.querySelector('i');
+        if (icon) icon.className = 'fa-solid fa-circle-check';
+
+        socket.emit('submit_vote', {
+            room: roomCode,
+            voter_id: playerId,
+            target_id: targetId
+        });
+
+        showToast(t('vote_received_toast'), 'success');
+    }
+
+    socket.on('voting_ended', function(data) {
+        clearInterval(votingInterval);
+        const modal = document.getElementById('player-voting-modal');
+        modal.classList.remove('show');
+
+        if (data.is_tie || !data.winner_name) {
+            showToast(t('voting_tie'), 'info', 6000);
+        } else {
+            showToast(`${data.winner_name} ${t('voted_out_desc')}`, 'warning', 7000);
+            sounds.playGong();
+        }
     });
 
     // Listen to Phase Changes (Day / Voting / Night)

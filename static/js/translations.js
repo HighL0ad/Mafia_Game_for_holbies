@@ -53,7 +53,6 @@ const TRANSLATIONS = {
         hide_role: "Rolu gizlət",
         peek_role: "Rola baxmaq",
         you_are_eliminated: "Siz bu oyundan çıxarıldınız",
-
         not_found_title: "XƏTA",
         not_found_msg: "Otaq və ya səhifə tapılmadı.",
         btn_to_home: "Ana səhifəyə",
@@ -71,6 +70,20 @@ const TRANSLATIONS = {
         night_overlay_subtitle: "Bütün şəhər yatır. Gözlərinizi yumun və aparıcını dinləyin.",
         voting_overlay_title: "Səsvermə vaxtı!",
         voting_overlay_subtitle: "Kimin şəhərdən çıxarılacağına səs verin.",
+        
+        // Live Voting System
+        voting_box_title: "Canlı Səsvermə",
+        select_candidates_hint: "Səsverməyə çıxarılan oyunçuları seçin:",
+        select_all_btn: "Hamısını seç",
+        btn_open_voting: "Səsverməni başlat (30 san)",
+        btn_close_voting: "Səsverməni dayandır",
+        voting_in_progress: "Səsvermə gedir...",
+        vote_received_toast: "Səsiniz qeydə alındı!",
+        abstain_vote: "Heç kimə (Bitərəf)",
+        voted_out_title: "Səsvermənin nəticəsi:",
+        voted_out_desc: "ən çox səs toplayaraq oyundan çıxarılır!",
+        voting_tie: "Bərabərlik! Heç kim çıxarılmadı.",
+        btn_confirm_elim: "Çıxarılmanı təsdiq et",
         
         balance_title: "Canlı Qüvvələr Balansı",
         balance_mafia: "Mafiya:",
@@ -156,7 +169,6 @@ const TRANSLATIONS = {
         hide_role: "Скрыть роль",
         peek_role: "Подглядеть роль",
         you_are_eliminated: "Вы выбыли из этой партии",
-
         not_found_title: "ОШИБКА",
         not_found_msg: "Вы зашли не в тот переулок... Комната или страница не найдена.",
         btn_to_home: "На главную",
@@ -174,6 +186,20 @@ const TRANSLATIONS = {
         night_overlay_subtitle: "Наступила ночь. Закройте глаза и слушайте указания ведущего.",
         voting_overlay_title: "Время голосования!",
         voting_overlay_subtitle: "Город решает, кто покинет игру.",
+        
+        // Live Voting System
+        voting_box_title: "Живое Голосование",
+        select_candidates_hint: "Выберите кандидатов на голосование:",
+        select_all_btn: "Выбрать всех",
+        btn_open_voting: "Открыть голосование (30 сек)",
+        btn_close_voting: "Завершить голосование",
+        voting_in_progress: "Идет сбор голосов...",
+        vote_received_toast: "Ваш голос принят!",
+        abstain_vote: "Ни против кого (Воздержаться)",
+        voted_out_title: "Итог голосования:",
+        voted_out_desc: "набирает большинство голосов и покидает игру!",
+        voting_tie: "Ничья! Никто не исключен.",
+        btn_confirm_elim: "Подтвердить исключение",
         
         balance_title: "Баланс живых сил",
         balance_mafia: "Мафия:",
@@ -259,7 +285,6 @@ const TRANSLATIONS = {
         hide_role: "Hide Role",
         peek_role: "Peek at role",
         you_are_eliminated: "You have been eliminated from this game",
-
         not_found_title: "ERROR",
         not_found_msg: "You wandered into the wrong alley... Room not found.",
         btn_to_home: "Home",
@@ -277,6 +302,20 @@ const TRANSLATIONS = {
         night_overlay_subtitle: "The entire city is asleep. Close your eyes and follow host instructions.",
         voting_overlay_title: "Voting Phase!",
         voting_overlay_subtitle: "The city decides who will be eliminated.",
+        
+        // Live Voting System
+        voting_box_title: "Live Voting",
+        select_candidates_hint: "Select nominated candidates:",
+        select_all_btn: "Select All",
+        btn_open_voting: "Start Voting (30s)",
+        btn_close_voting: "End Voting",
+        voting_in_progress: "Collecting votes...",
+        vote_received_toast: "Your vote has been cast!",
+        abstain_vote: "Abstain (None)",
+        voted_out_title: "Voting Result:",
+        voted_out_desc: "received the most votes and is eliminated!",
+        voting_tie: "Tie! No player was eliminated.",
+        btn_confirm_elim: "Confirm Elimination",
         
         balance_title: "Live Force Balance",
         balance_mafia: "Mafia:",
