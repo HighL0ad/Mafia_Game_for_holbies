@@ -44,10 +44,10 @@
 .card-scene {
     perspective: 1200px;
     width: min(370px, 92vw);
-    height: 530px;
+    height: clamp(380px, 58vh, 500px);
     user-select: none;
     -webkit-user-select: none;
-    margin: 0 auto 20px auto;
+    margin: 0 auto 14px auto;
 }
 
 .card-inner {
@@ -332,4 +332,56 @@
 
 .eliminated-banner.show {
     display: flex;
+}
+
+/* Mobile zero-scroll adjustments */
+@media (max-width: 600px) {
+    .player-top-bar {
+        margin: 0 auto 8px auto;
+        padding: 8px 14px;
+        font-size: 0.95rem;
+    }
+    .card-scene {
+        height: clamp(350px, 54vh, 440px);
+        margin: 0 auto 8px auto;
+    }
+    .card-face {
+        padding: 16px 14px;
+    }
+    .mystery-seal {
+        width: 72px;
+        height: 72px;
+        font-size: 30px;
+        margin: 4px auto 0 auto;
+    }
+    .mystery-title {
+        font-size: 1.3rem;
+        margin-top: 4px;
+    }
+    .tap-hint {
+        padding: 6px 12px;
+        font-size: 0.78rem;
+    }
+    .role-badge-icon {
+        width: 64px;
+        height: 64px;
+        font-size: 28px;
+        margin: 0 auto 6px auto;
+    }
+    .role-name-display {
+        font-size: 1.45rem;
+        margin: 0 auto 6px auto;
+    }
+    .role-desc-box {
+        padding: 8px 12px;
+        font-size: 0.78rem;
+        line-height: 1.4;
+        margin-bottom: 8px;
+        max-height: 100px;
+        overflow-y: auto;
+    }
+    .hide-role-btn {
+        padding: 7px 12px;
+        font-size: 0.8rem;
+    }
 }
