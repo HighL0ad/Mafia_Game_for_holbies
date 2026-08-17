@@ -1,162 +1,408 @@
 {% extends 'base.html' %}
 
+{% block title %}Otaq {{ code }} | Aparıcı Paneli{% endblock %}
+
 {% block main %}
-<div class="container">
-    <h1 class="mb-4">Host</h1>
-    <p>code: {{ code }}</p>
+<div class="glass-card">
+    <!-- Room Code Bar -->
+    <div class="room-header">
+        <div class="room-code-badge">
+            <span class="room-code-label" data-i18n="room_code_label">Otaq kodu</span>
+            <span class="room-code-val">{{ code }}</span>
+        </div>
+        <div class="room-actions">
+            <button type="button" class="icon-action-btn" onclick="copyInviteLink()" title="Dəvət linkini kopyala">
+                <i class="fa-solid fa-link"></i> <span data-i18n="btn_link">Link</span>
+            </button>
+            <button type="button" class="icon-action-btn" onclick="showQrModal()" title="QR kodu göstər">
+                <i class="fa-solid fa-qrcode"></i> <span data-i18n="btn_qr">QR</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Active Game Controls (Visible during game) -->
+    {% if status == "started" %}
+    <!-- Game Phase Switcher -->
+    <div class="phase-selector-bar">
+        <button type="button" 
+                class="phase-btn {{ 'active-day' if phase == 'day' else '' }}" 
+                id="phase-btn-day" 
+                onclick="setPhase('day')">
+            <i class="fa-solid fa-sun" style="color: var(--color-day);"></i>
+            <span data-i18n="phase_day_short">Gündüz</span> #<span id="day-counter-display">{{ day_number }}</span>
+        </button>
+        <button type="button" 
+                class="phase-btn {{ 'active-voting' if phase == 'voting' else '' }}" 
+                id="phase-btn-voting" 
+                onclick="setPhase('voting')">
+            <i class="fa-solid fa-check-to-slot" style="color: var(--color-voting);"></i>
+            <span data-i18n="phase_voting_short">Səsvermə</span>
+        </button>
+        <button type="button" 
+                class="phase-btn {{ 'active-night' if phase == 'night' else '' }}" 
+                id="phase-btn-night" 
+                onclick="setPhase('night')">
+            <i class="fa-solid fa-moon" style="color: var(--color-night);"></i>
+            <span data-i18n="phase_night_short">Gecə</span>
+        </button>
+    </div>
+
+    <!-- Live Force Balance Panel -->
+    <div class="force-balance-card">
+        <div class="balance-item" style="color: var(--role-mafia);">
+            <i class="fa-solid fa-gun"></i>
+            <span data-i18n="balance_mafia">Mafiya:</span>
+            <span class="balance-num" id="stat-mafia">{{ stats.alive_mafia }}</span>
+        </div>
+        <div class="balance-item" style="color: var(--role-doctor);">
+            <i class="fa-solid fa-users"></i>
+            <span data-i18n="balance_town">Dinc:</span>
+            <span class="balance-num" id="stat-town">{{ stats.alive_town }}</span>
+        </div>
+        <div class="balance-item" style="color: var(--text-primary);">
+            <i class="fa-solid fa-heart-pulse"></i>
+            <span data-i18n="balance_total">Sağ qalan:</span>
+            <span class="balance-num" id="stat-total">{{ stats.alive_total }}</span>
+        </div>
+    </div>
+
+    <!-- Host In-Game Speech Timer -->
+    <div class="host-controls-panel">
+        <div class="timer-box">
+            <i class="fa-regular fa-clock" style="color: var(--accent-crimson); font-size: 1.3rem;"></i>
+            <span id="timer-display" class="timer-digits">01:00</span>
+        </div>
+        <div class="timer-btn-group">
+            <button type="button" class="icon-action-btn" onclick="startTimer()" id="timer-toggle-btn">
+                <i class="fa-solid fa-play"></i> <span id="timer-action-text" data-i18n="timer_start">Başla</span>
+            </button>
+            <button type="button" class="icon-action-btn" onclick="resetTimer()">
+                <i class="fa-solid fa-rotate-left"></i> <span data-i18n="timer_reset">Sıfırla</span>
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Players Section -->
+    <div class="section-header">
+        <h3 class="section-title">
+            <i class="fa-solid fa-users"></i> <span data-i18n="players_in_lobby">Lobbiyə qoşulanlar</span>
+            <span id="player-count-badge" class="badge-count">{{ player_count }}</span>
+        </h3>
+        <span id="status-pill" class="badge-count" style="background: rgba(58, 134, 255, 0.15); color: #3a86ff;">
+            {{ 'Oyun davam edir' if status == 'started' else 'Gözlənilir' }}
+        </span>
+    </div>
 
     <div id="player-list" class="player-list">
-        <h3>Players ({{ player_count }})</h3>
-        {% for item in context %}
-        <div class="player-item">
-            <span>Player: {{ item.name }}</span>
-            <span>Role: {{ item.role }}</span>
+        {% for item in players %}
+        <div class="player-item" id="player-card-{{ item.id }}">
+            <div class="player-info">
+                <div class="player-avatar">{{ item.name[:1].upper() }}</div>
+                <div>
+                    <div class="player-name {{ 'player-dead' if not item.is_alive else '' }}">{{ item.name }}</div>
+                    {% if item.role %}
+                    <span class="player-role-tag role-tag-{{ item.role.lower() }}" data-role="{{ item.role.lower() }}">{{ item.role }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% if status == "started" %}
+            <button type="button" 
+                    class="status-toggle-btn {{ 'alive' if item.is_alive else 'dead' }}"
+                    onclick="togglePlayerStatus('{{ code }}', {{ item.id }})">
+                <i class="fa-solid {{ 'fa-heart-pulse' if item.is_alive else 'fa-skull' }}"></i>
+            </button>
+            {% endif %}
         </div>
         {% else %}
-        <p>No players yet</p>
+        <div id="no-players-placeholder" style="text-align: center; color: var(--text-muted); padding: 24px 0;">
+            <i class="fa-regular fa-clock" style="font-size: 24px; margin-bottom: 8px; display: block;"></i>
+            <span data-i18n="waiting_players">Oyunçuların qoşulması gözlənilir...</span>
+        </div>
         {% endfor %}
     </div>
 
+    <!-- Roles Setup (When waiting) -->
     {% if status == "waiting" %}
-    <div class="roles-config mt-4">
-        <h3>Configure Roles</h3>
-        <p class="text-muted">Total roles assigned: <span id="total-roles">{{ total_roles }}</span>
-            / <span id="player-count-display">{{ player_count }}</span></p>
+    <div class="roles-config-card">
+        <div class="section-header" style="margin-bottom: 6px;">
+            <h4 style="font-size: 1rem; font-weight: 700; color: #ffffff;">
+                <i class="fa-solid fa-sliders"></i> <span data-i18n="role_config_title">Rolların tənzimlənməsi</span>
+            </h4>
+            <span class="text-muted" style="font-size: 0.82rem;">
+                <span data-i18n="special_roles_label">Xüsusi rollar:</span> <strong id="total-roles" style="color: #ffffff;">{{ total_roles }}</strong> / <span id="player-count-display">{{ player_count }}</span>
+            </span>
+        </div>
 
         <form id="roles-form" action="{{ url_for('host_bp.start_game', code=code ) }}" method="post">
-            <div class="role-item">
-                <label>Mafia:</label>
-                <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('mafia', -1)">-
-                </button>
-                <input type="number" name="mafia" id="mafia" value="{{ roles_config.mafia }}" min="0" readonly>
-                <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('mafia', 1)">+
-                </button>
+            <div class="role-stepper-grid">
+                <!-- Mafia -->
+                <div class="role-stepper-item">
+                    <span class="role-stepper-label">
+                        <span class="role-indicator" style="background: var(--role-mafia);"></span> <span data-i18n="role_mafia">Mafiya</span>
+                    </span>
+                    <div class="controls-stepper">
+                        <button type="button" class="stepper-btn" onclick="changeRole('mafia', -1)">-</button>
+                        <span id="val-mafia" class="stepper-val">{{ roles_config.get('mafia', 0) }}</span>
+                        <input type="hidden" name="mafia" id="mafia" value="{{ roles_config.get('mafia', 0) }}">
+                        <button type="button" class="stepper-btn" onclick="changeRole('mafia', 1)">+</button>
+                    </div>
+                </div>
+
+                <!-- Don -->
+                <div class="role-stepper-item">
+                    <span class="role-stepper-label">
+                        <span class="role-indicator" style="background: var(--role-don);"></span> <span data-i18n="role_don">Don</span>
+                    </span>
+                    <div class="controls-stepper">
+                        <button type="button" class="stepper-btn" onclick="changeRole('don', -1)">-</button>
+                        <span id="val-don" class="stepper-val">{{ roles_config.get('don', 0) }}</span>
+                        <input type="hidden" name="don" id="don" value="{{ roles_config.get('don', 0) }}">
+                        <button type="button" class="stepper-btn" onclick="changeRole('don', 1)">+</button>
+                    </div>
+                </div>
+
+                <!-- Doctor -->
+                <div class="role-stepper-item">
+                    <span class="role-stepper-label">
+                        <span class="role-indicator" style="background: var(--role-doctor);"></span> <span data-i18n="role_doctor">Həkim</span>
+                    </span>
+                    <div class="controls-stepper">
+                        <button type="button" class="stepper-btn" onclick="changeRole('doctor', -1)">-</button>
+                        <span id="val-doctor" class="stepper-val">{{ roles_config.get('doctor', 0) }}</span>
+                        <input type="hidden" name="doctor" id="doctor" value="{{ roles_config.get('doctor', 0) }}">
+                        <button type="button" class="stepper-btn" onclick="changeRole('doctor', 1)">+</button>
+                    </div>
+                </div>
+
+                <!-- Sheriff -->
+                <div class="role-stepper-item">
+                    <span class="role-stepper-label">
+                        <span class="role-indicator" style="background: var(--role-sheriff);"></span> <span data-i18n="role_sheriff">Komissar</span>
+                    </span>
+                    <div class="controls-stepper">
+                        <button type="button" class="stepper-btn" onclick="changeRole('sheriff', -1)">-</button>
+                        <span id="val-sheriff" class="stepper-val">{{ roles_config.get('sheriff', 0) }}</span>
+                        <input type="hidden" name="sheriff" id="sheriff" value="{{ roles_config.get('sheriff', 0) }}">
+                        <button type="button" class="stepper-btn" onclick="changeRole('sheriff', 1)">+</button>
+                    </div>
+                </div>
+
+                <!-- Maniac -->
+                <div class="role-stepper-item">
+                    <span class="role-stepper-label">
+                        <span class="role-indicator" style="background: var(--role-maniac);"></span> <span data-i18n="role_maniac">Manyak</span>
+                    </span>
+                    <div class="controls-stepper">
+                        <button type="button" class="stepper-btn" onclick="changeRole('maniac', -1)">-</button>
+                        <span id="val-maniac" class="stepper-val">{{ roles_config.get('maniac', 0) }}</span>
+                        <input type="hidden" name="maniac" id="maniac" value="{{ roles_config.get('maniac', 0) }}">
+                        <button type="button" class="stepper-btn" onclick="changeRole('maniac', 1)">+</button>
+                    </div>
+                </div>
+
+                <!-- Kamikaze -->
+                <div class="role-stepper-item">
+                    <span class="role-stepper-label">
+                        <span class="role-indicator" style="background: var(--role-kamikaze);"></span> <span data-i18n="role_kamikaze">Kamikadze</span>
+                    </span>
+                    <div class="controls-stepper">
+                        <button type="button" class="stepper-btn" onclick="changeRole('kamikaze', -1)">-</button>
+                        <span id="val-kamikaze" class="stepper-val">{{ roles_config.get('kamikaze', 0) }}</span>
+                        <input type="hidden" name="kamikaze" id="kamikaze" value="{{ roles_config.get('kamikaze', 0) }}">
+                        <button type="button" class="stepper-btn" onclick="changeRole('kamikaze', 1)">+</button>
+                    </div>
+                </div>
             </div>
 
-            <div class="role-item">
-                <label>Don:</label>
-                <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('don', -1)">-
-                </button>
-                <input type="number" name="don" id="don" value="{{ roles_config.don }}" min="0" readonly>
-                <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('don', 1)">+</button>
+            <!-- Villagers Calculation -->
+            <div class="villager-auto-box">
+                <span style="display: flex; align-items: center; gap: 8px; font-weight: 600;">
+                    <span class="role-indicator" style="background: var(--role-villager);"></span> <span data-i18n="villagers_label">Dinc sakinlər:</span>
+                </span>
+                <span id="villager-count" style="font-weight: 700; color: #ffffff; font-size: 1.1rem;">
+                    {{ roles_config.get('villager', 0) }}
+                </span>
+                <input type="hidden" name="villager" id="villager" value="{{ roles_config.get('villager', 0) }}">
             </div>
 
-            <div class="role-item">
-                <label>Doctor:</label>
-                <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('doctor', -1)">-
-                </button>
-                <input type="number" name="doctor" id="doctor" value="{{ roles_config.doctor }}" min="0" readonly>
-                <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('doctor', 1)">+
-                </button>
-            </div>
-
-            <div class="role-item">
-                <label>Sheriff:</label>
-                <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('sheriff', -1)">-
-                </button>
-                <input type="number" name="sheriff" id="sheriff" value="{{ roles_config.sheriff }}" min="0" readonly>
-                <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('sheriff', 1)">+
-                </button>
-            </div>
-
-            <div class="role-item">
-                <label>Maniac:</label>
-                <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('maniac', -1)">-
-                </button>
-                <input type="number" name="maniac" id="maniac" value="{{ roles_config.maniac }}" min="0" readonly>
-                <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('maniac', 1)">+
-                </button>
-            </div>
-
-            <div class="role-item">
-                <label>Kamikaze:</label>
-                <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('kamikaze', -1)">-
-                </button>
-                <input type="number" name="kamikaze" id="kamikaze" value="{{ roles_config.kamikaze }}" min="0" readonly>
-                <button type="button" class="btn btn-sm btn-secondary" onclick="changeRole('kamikaze', 1)">+
-                </button>
-            </div>
-
-            <div class="role-item">
-                <label>Villager:</label>
-                <span id="villager-count">{{ roles_config.villager }}</span>
-                <input type="hidden" name="villager" id="villager" value="{{ roles_config.villager }}">
-                <small class="text-muted">(auto-calculated)</small>
-            </div>
-
-            <button type="submit" id="start-game" class="btn btn-success btn-lg btn-block mt-3">Start Game
+            <button type="submit" id="start-game" class="btn btn-primary mt-3" {{ 'disabled' if player_count < 3 else '' }}>
+                <i class="fa-solid fa-play"></i> 
+                <span id="start-btn-text">{{ 'Oyunu başlat' if player_count >= 3 else 'Ən azı 3 oyunçu lazımdır (' ~ player_count ~ '/3)' }}</span>
             </button>
         </form>
-
-        <form action="{{ url_for('host_bp.end_game', code=code ) }}" method="post">
-            <button id="end-game" class="btn btn-danger btn-lg btn-block mt-3">End Game</button>
-        </form>
     </div>
-    {% else %}
-    <form action="{{ url_for('host_bp.end_game', code=code ) }}" method="post">
-        <button id="end-game" class="btn btn-danger btn-lg btn-block mt-3">End Game</button>
-    </form>
     {% endif %}
+
+    <!-- End Game Button -->
+    <form action="{{ url_for('host_bp.end_game', code=code ) }}" method="post" onsubmit="return confirm(t('confirm_end_game'));" style="margin-top: 16px;">
+        <button id="end-game" class="btn btn-danger">
+            <i class="fa-solid fa-power-off"></i> <span data-i18n="btn_end_game">Oyunu bitir və otağı bağla</span>
+        </button>
+    </form>
 </div>
 
-<script type="text/javascript" charset="utf-8">
-    var socket = io();
-    var roomCode = "{{ code }}";
-    var playerCount = {{ player_count }};
+<!-- QR Code Modal -->
+<div id="qr-modal" class="qr-modal" onclick="closeQrModal(event)">
+    <div class="qr-modal-content">
+        <h4 style="font-family: var(--font-heading); margin-bottom: 6px;" data-i18n="qr_title">QR kodu oxudun</h4>
+        <p style="color: var(--text-secondary); font-size: 0.85rem;" data-i18n="qr_subtitle">Oyunçuların tez qoşulması üçün</p>
+        <div id="qrcode" class="qr-box"></div>
+        <p style="font-size: 1.2rem; font-weight: 700; letter-spacing: 2px; color: var(--accent-crimson);">{{ code }}</p>
+        <button type="button" class="btn btn-secondary mt-2" onclick="document.getElementById('qr-modal').classList.remove('show')" data-i18n="btn_close">
+            Bağla
+        </button>
+    </div>
+</div>
+
+<script>
+    const socket = io();
+    const roomCode = "{{ code }}";
+    let playerCount = {{ player_count }};
+    const isStarted = "{{ status }}" === "started";
+    let currentPhase = "{{ phase }}";
+    let currentDayNum = {{ day_number }};
+
+    function updateStatusPill() {
+        const pill = document.getElementById('status-pill');
+        if (pill) {
+            pill.textContent = isStarted ? t('status_started') : t('status_waiting');
+        }
+    }
+
+    window.addEventListener('languageChanged', () => {
+        updateStatusPill();
+        updateVillagerCount();
+    });
 
     socket.on('connect', function () {
         socket.emit('join_room', { room: roomCode });
     });
 
+    // Phase Switching (Day / Voting / Night)
+    function setPhase(newPhase) {
+        fetch(`/host/set-phase/${roomCode}/${newPhase}`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                currentPhase = data.phase;
+                currentDayNum = data.day_number;
+                updatePhaseUI(data.phase, data.day_number);
+
+                if (newPhase === 'night') {
+                    sounds.playNight();
+                    showToast(t('phase_night'), 'info');
+                } else if (newPhase === 'day') {
+                    sounds.playDay();
+                    showToast(`${t('phase_day')} #${data.day_number}`, 'info');
+                } else if (newPhase === 'voting') {
+                    sounds.playVoting();
+                    showToast(t('phase_voting'), 'info');
+                }
+            });
+    }
+
+    function updatePhaseUI(phase, dayNum) {
+        const dayBtn = document.getElementById('phase-btn-day');
+        const votingBtn = document.getElementById('phase-btn-voting');
+        const nightBtn = document.getElementById('phase-btn-night');
+        const dayDisplay = document.getElementById('day-counter-display');
+
+        if (dayDisplay) dayDisplay.textContent = dayNum;
+
+        if (dayBtn) dayBtn.className = `phase-btn ${phase === 'day' ? 'active-day' : ''}`;
+        if (votingBtn) votingBtn.className = `phase-btn ${phase === 'voting' ? 'active-voting' : ''}`;
+        if (nightBtn) nightBtn.className = `phase-btn ${phase === 'night' ? 'active-night' : ''}`;
+    }
+
     socket.on('update_player_list', function (data) {
-        var playerList = document.getElementById("player-list");
-
-        playerList.innerHTML = "<h3>Players (" + data.players.length + ")</h3>";
-
-        data.players.forEach(function (player) {
-            var playerItem = document.createElement("div");
-            playerItem.className = "player-item";
-            playerItem.innerHTML = "<span>Player: " + player.name + "</span><span>Role: " + player.role + "</span>";
-            playerList.appendChild(playerItem);
-        });
-
+        const playerList = document.getElementById("player-list");
+        const oldCount = playerCount;
         playerCount = data.players.length;
 
-        var countDisplay = document.getElementById('player-count-display');
-        if (countDisplay) {
-            countDisplay.textContent = playerCount;
+        if (playerCount > oldCount && oldCount > 0) {
+            sounds.playJoin();
+        }
+
+
+        const countBadge = document.getElementById('player-count-badge');
+        if (countBadge) countBadge.textContent = playerCount;
+
+        const countDisplay = document.getElementById('player-count-display');
+        if (countDisplay) countDisplay.textContent = playerCount;
+
+        if (playerCount === 0) {
+            playerList.innerHTML = `
+                <div id="no-players-placeholder" style="text-align: center; color: var(--text-muted); padding: 24px 0;">
+                    <i class="fa-regular fa-clock" style="font-size: 24px; margin-bottom: 8px; display: block;"></i>
+                    <span>${t('waiting_players')}</span>
+                </div>
+            `;
+        } else {
+            playerList.innerHTML = "";
+            data.players.forEach(function (player) {
+                const item = document.createElement("div");
+                item.className = "player-item";
+                item.id = `player-card-${player.id}`;
+                
+                const roleKey = player.role ? player.role.toLowerCase() : '';
+                const roleTranslated = roleKey ? t('role_' + roleKey) : '';
+                const roleTag = roleKey ? `<span class="player-role-tag role-tag-${roleKey}">${roleTranslated}</span>` : '';
+                const deadClass = (!player.is_alive) ? 'player-dead' : '';
+
+                let statusBtn = '';
+                if (isStarted) {
+                    const aliveClass = player.is_alive ? 'alive' : 'dead';
+                    const iconClass = player.is_alive ? 'fa-heart-pulse' : 'fa-skull';
+                    statusBtn = `
+                        <button type="button" class="status-toggle-btn ${aliveClass}" onclick="togglePlayerStatus('${roomCode}', ${player.id})">
+                            <i class="fa-solid ${iconClass}"></i>
+                        </button>
+                    `;
+                }
+
+                item.innerHTML = `
+                    <div class="player-info">
+                        <div class="player-avatar">${player.name.charAt(0).toUpperCase()}</div>
+                        <div>
+                            <div class="player-name ${deadClass}">${player.name}</div>
+                            ${roleTag}
+                        </div>
+                    </div>
+                    ${statusBtn}
+                `;
+                playerList.appendChild(item);
+            });
         }
 
         updateVillagerCount();
     });
 
     function changeRole(role, delta) {
-        var input = document.getElementById(role);
+        const input = document.getElementById(role);
+        const valDisplay = document.getElementById('val-' + role);
         if (!input) return;
 
-        var currentValue = parseInt(input.value);
-        var newValue = Math.max(0, currentValue + delta);
+        let currentValue = parseInt(input.value) || 0;
+        let newValue = Math.max(0, currentValue + delta);
 
-        var totalRoles = calculateTotalRoles();
-        var projectedTotal = totalRoles - currentValue + newValue;
+        let totalSpecialRoles = calculateTotalRoles() - currentValue + newValue;
 
-        if (delta > 0 && projectedTotal > playerCount) {
-            alert('Cannot add more roles. Total roles cannot exceed number of players.');
+        if (delta > 0 && totalSpecialRoles > playerCount) {
+            showToast(t('roles_exceed_players'), 'error');
             return;
         }
 
         input.value = newValue;
+        if (valDisplay) valDisplay.textContent = newValue;
         updateVillagerCount();
     }
 
     function calculateTotalRoles() {
-        var roles = ['mafia', 'don', 'doctor', 'sheriff', 'maniac', 'kamikaze'];
-        var total = 0;
-        roles.forEach(function (role) {
-            var el = document.getElementById(role);
-            if (el) {
-                total += parseInt(el.value) || 0;
-            }
+        const roles = ['mafia', 'don', 'doctor', 'sheriff', 'maniac', 'kamikaze'];
+        let total = 0;
+        roles.forEach(role => {
+            const el = document.getElementById(role);
+            if (el) total += parseInt(el.value) || 0;
         });
         return total;
     }
@@ -164,23 +410,160 @@
     function updateVillagerCount() {
         if (!document.getElementById('villager-count')) return;
 
-        var totalSpecialRoles = calculateTotalRoles();
-        var villagerCount = Math.max(0, playerCount - totalSpecialRoles);
+        const totalSpecial = calculateTotalRoles();
+        const villagerCount = Math.max(0, playerCount - totalSpecial);
 
         document.getElementById('villager-count').textContent = villagerCount;
         document.getElementById('villager').value = villagerCount;
-        document.getElementById('total-roles').textContent = totalSpecialRoles;
+        document.getElementById('total-roles').textContent = totalSpecial;
 
-        var startButton = document.getElementById('start-game');
-        if (startButton) {
-            if (playerCount < 6) {
+        const startButton = document.getElementById('start-game');
+        const startText = document.getElementById('start-btn-text');
+        if (startButton && startText) {
+            if (playerCount < 3) {
                 startButton.disabled = true;
-                startButton.textContent = 'Need at least 6 players (' + playerCount + '/6)';
+                startText.textContent = `${t('min_players_needed')} (${playerCount}/3)`;
             } else {
                 startButton.disabled = false;
-                startButton.textContent = 'Start Game';
+                startText.textContent = `${t('btn_start_game')} (${playerCount})`;
             }
         }
+    }
+
+    // Toggle player status (Alive / Eliminated)
+    function togglePlayerStatus(code, playerId) {
+        fetch(`/host/toggle-player-status/${code}/${playerId}`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                const card = document.getElementById(`player-card-${playerId}`);
+                if (card) {
+                    const nameEl = card.querySelector('.player-name');
+                    const btn = card.querySelector('.status-toggle-btn');
+                    if (data.is_alive) {
+                        nameEl.classList.remove('player-dead');
+                        btn.className = 'status-toggle-btn alive';
+                        btn.innerHTML = '<i class="fa-solid fa-heart-pulse"></i>';
+                        showToast(t('player_restored'), 'info');
+                    } else {
+                        nameEl.classList.add('player-dead');
+                        btn.className = 'status-toggle-btn dead';
+                        btn.innerHTML = '<i class="fa-solid fa-skull"></i>';
+                        sounds.playEliminated();
+                        showToast(t('player_eliminated'), 'error');
+                    }
+                }
+
+                if (data.stats) {
+                    updateForceBalance(data.stats);
+                }
+            });
+    }
+
+    function updateForceBalance(stats) {
+        const mafiaEl = document.getElementById('stat-mafia');
+        const townEl = document.getElementById('stat-town');
+        const totalEl = document.getElementById('stat-total');
+
+        if (mafiaEl) mafiaEl.textContent = stats.alive_mafia;
+        if (townEl) townEl.textContent = stats.alive_town;
+        if (totalEl) totalEl.textContent = stats.alive_total;
+
+        if (stats.winner) {
+            sounds.playVictory();
+            if (stats.winner === 'mafia') {
+                showToast(t('winner_mafia_title'), 'error', 8000);
+            } else if (stats.winner === 'town') {
+                showToast(t('winner_town_title'), 'success', 8000);
+            } else if (stats.winner === 'maniac') {
+                showToast(t('winner_maniac_title'), 'warning', 8000);
+            }
+        }
+    }
+
+
+    // Copy Invite Link
+    function copyInviteLink() {
+        const link = `${window.location.origin}/?room=${roomCode}`;
+        navigator.clipboard.writeText(link).then(() => {
+            showToast(t('link_copied'), 'success');
+        });
+    }
+
+    // QR Code
+    function showQrModal() {
+        const modal = document.getElementById('qr-modal');
+        const qrContainer = document.getElementById('qrcode');
+        qrContainer.innerHTML = "";
+        const link = `${window.location.origin}/?room=${roomCode}`;
+        new QRCode(qrContainer, {
+            text: link,
+            width: 180,
+            height: 180,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+        });
+        modal.classList.add('show');
+    }
+
+    function closeQrModal(e) {
+        if (e.target.id === 'qr-modal') {
+            document.getElementById('qr-modal').classList.remove('show');
+        }
+    }
+
+    // Speech Timer (60s turn timer for host)
+    let timerInterval = null;
+    let secondsLeft = 60;
+    let timerRunning = false;
+
+    function formatTime(sec) {
+        const m = Math.floor(sec / 60).toString().padStart(2, '0');
+        const s = (sec % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+
+    function startTimer() {
+        const btn = document.getElementById('timer-toggle-btn');
+        const actionText = document.getElementById('timer-action-text');
+        if (timerRunning) {
+            clearInterval(timerInterval);
+            timerRunning = false;
+            btn.querySelector('i').className = 'fa-solid fa-play';
+            if (actionText) actionText.textContent = t('timer_start');
+        } else {
+            timerRunning = true;
+            btn.querySelector('i').className = 'fa-solid fa-pause';
+            if (actionText) actionText.textContent = t('timer_pause');
+            sounds.playClick();
+            timerInterval = setInterval(() => {
+                if (secondsLeft > 0) {
+                    secondsLeft--;
+                    document.getElementById('timer-display').textContent = formatTime(secondsLeft);
+                    if (secondsLeft <= 5 && secondsLeft > 0) {
+                        sounds.playTick();
+                    }
+                } else {
+                    clearInterval(timerInterval);
+                    timerRunning = false;
+                    btn.querySelector('i').className = 'fa-solid fa-play';
+                    if (actionText) actionText.textContent = t('timer_start');
+                    sounds.playGong();
+                    showToast(t('timer_finished'), 'warning');
+                }
+            }, 1000);
+        }
+    }
+
+    function resetTimer() {
+        clearInterval(timerInterval);
+        timerRunning = false;
+        secondsLeft = 60;
+        document.getElementById('timer-display').textContent = formatTime(secondsLeft);
+        const btn = document.getElementById('timer-toggle-btn');
+        const actionText = document.getElementById('timer-action-text');
+        if (btn) btn.querySelector('i').className = 'fa-solid fa-play';
+        if (actionText) actionText.textContent = t('timer_start');
     }
 </script>
 {% endblock %}

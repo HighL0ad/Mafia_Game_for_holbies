@@ -1,26 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends 'base.html' %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mafia Game</title>
-    <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}" type="image/x-icon">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/404.css') }}">
-</head>
+{% block title %}404 | Error{% endblock %}
 
-<body>
-    <div class="noise"></div>
-    <div class="overlay"></div>
-    <div class="terminal">
-        <h1>Error <span class="errorcode">404</span></h1>
-        <p class="output">The page you are looking for might have been removed, had its name changed or is temporarily
-            unavailable.</p>
-        <p class="output">Please try to go <a href="{{ url_for('home_bp.index') }}">to the homepage</a>.</p>
-        <p class="output">Good luck.</p>
+{% block main %}
+<div class="glass-card" style="text-align: center;">
+    <div class="brand-icon" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.4); color: var(--color-danger);">
+        <i class="fa-solid fa-triangle-exclamation"></i>
     </div>
-
-</body>
-
-</html>
+    <h1 class="brand-title" style="font-size: 1.8rem;">404 <span data-i18n="not_found_title">XƏTA</span></h1>
+    <p style="color: var(--text-secondary); margin-bottom: 24px;" data-i18n="not_found_msg">
+        {{ message if message else 'Otaq və ya səhifə tapılmadı.' }}
+    </p>
+    <a href="{{ url_for('home_bp.index') }}" class="btn btn-primary">
+        <i class="fa-solid fa-house"></i> <span data-i18n="btn_to_home">Ana səhifəyə</span>
+    </a>
+</div>
+{% endblock %}

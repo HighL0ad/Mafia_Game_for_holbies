@@ -1,10 +1,8 @@
-from typing import Dict
-
-from bson import ObjectId
-from flask import redirect, render_template, url_for, request
+from flask import jsonify, redirect, render_template, request, url_for
 from flask.blueprints import Blueprint
 
-from database import mongo
+from database import db
+from models import Player, Room, get_default_roles_config
 from utils.role import assign_roles
 from websock import socketio
 
@@ -13,62 +11,80 @@ host_bp = Blueprint(
 )
 
 
-def get_default_roles_config(num_players):
-    roles_config = {
-        range(1, 6): {"mafia": 1, "don": 0, "doctor": 1, "sheriff": 1, "maniac": 0, "kamikaze": 0},
-        range(6, 11): {"mafia": 2, "don": 0, "doctor": 1, "sheriff": 1, "maniac": 0, "kamikaze": 0},
-        range(11, 16): {"mafia": 3, "don": 1, "doctor": 1, "sheriff": 1, "maniac": 1, "kamikaze": 1},
-        range(16, 21): {"mafia": 4, "don": 1, "doctor": 2, "sheriff": 1, "maniac": 1, "kamikaze": 1},
-        range(21, 26): {"mafia": 5, "don": 1, "doctor": 2, "sheriff": 2, "maniac": 1, "kamikaze": 1},
-        range(26, 31): {"mafia": 6, "don": 1, "doctor": 2, "sheriff": 2, "maniac": 2, "kamikaze": 1},
+def calculate_game_stats(players):
+    mafia_count = 0
+    town_count = 0
+    maniac_count = 0
+    alive_players = [p for p in players if p.is_alive]
+
+    for p in alive_players:
+        role = (p.role or "").lower()
+        if role in ("mafia", "don"):
+            mafia_count += 1
+        elif role == "maniac":
+            maniac_count += 1
+        else:
+            town_count += 1
+
+    winner = None
+    if len(alive_players) > 0:
+        if mafia_count == 0 and maniac_count == 0:
+            winner = "town"
+        elif mafia_count >= (town_count + maniac_count) and mafia_count > 0:
+            winner = "mafia"
+        elif maniac_count == 1 and mafia_count == 0 and town_count <= 1:
+            winner = "maniac"
+
+    return {
+        "alive_total": len(alive_players),
+        "alive_mafia": mafia_count,
+        "alive_town": town_count,
+        "alive_maniac": maniac_count,
+        "winner": winner
     }
-
-    for player_range, config in roles_config.items():
-        if num_players in player_range:
-            total_special = sum(config.values())
-            config["villager"] = num_players - total_special
-            return config
-
-    return {"mafia": 0, "don": 0, "doctor": 0, "sheriff": 0, "maniac": 0, "kamikaze": 0,
-            "villager": max(0, num_players)}
 
 
 @host_bp.route("/<code>")
 def host(code: str):
-    context: Dict = mongo.db.rooms.find_one_or_404({"host_code": code})
+    room = Room.query.filter_by(host_code=code).first_or_404()
+    player_count = len(room.players)
 
-    player_count = len(context["players"])
-
-    if "roles_config" not in context:
+    roles_config = room.roles_config or {}
+    if not roles_config:
         roles_config = get_default_roles_config(player_count)
-        mongo.db.rooms.update_one(
-            {"host_code": code},
-            {"$set": {"roles_config": roles_config}}
-        )
+        room.roles_config = roles_config
+        db.session.commit()
     else:
-        roles_config = context["roles_config"]
-        total_special = sum(v for k, v in roles_config.items() if k != "villager")
+        total_special = sum(int(v) for k, v in roles_config.items() if k != "villager")
         roles_config["villager"] = max(0, player_count - total_special)
+        room.roles_config = roles_config
+        db.session.commit()
 
-    total_roles = sum(v for k, v in roles_config.items() if k != "villager")
+    total_special = sum(int(v) for k, v in roles_config.items() if k != "villager")
+    stats = calculate_game_stats(room.players)
 
     return render_template(
         "host.html",
         code=code,
-        context=context["players"],
-        status=context["status"],
+        room=room,
+        players=room.players,
+        status=room.status,
+        phase=room.phase or "day",
+        day_number=room.day_number or 1,
         player_count=player_count,
         roles_config=roles_config,
-        total_roles=total_roles
+        total_roles=total_special,
+        stats=stats
     )
 
 
 @host_bp.post("/start-game/<code>")
 def start_game(code: str):
-    room = mongo.db.rooms.find_one_or_404({"host_code": code})
+    room = Room.query.filter_by(host_code=code).first_or_404()
+    players = room.players
 
-    if len(room["players"]) < 6:
-        return "Need at least 6 players to start the game", 400
+    if len(players) < 3:
+        return "Для начала игры необходимо минимум 3 игрока", 400
 
     roles_config = {
         "mafia": int(request.form.get("mafia", 0)),
@@ -81,38 +97,92 @@ def start_game(code: str):
     }
 
     total_roles = sum(roles_config.values())
-    if total_roles != len(room["players"]):
-        return "Total roles must equal number of players", 400
+    if total_roles != len(players):
+        return f"Количество ролей ({total_roles}) должно равняться количеству игроков ({len(players)})", 400
 
-    players = room["players"]
-    assign_roles(players, roles_config)
+    players_dict_list = [{"id": p.id, "name": p.name, "role": None} for p in players]
+    assign_roles(players_dict_list, roles_config)
 
-    for player in players:
-        mongo.db.players.update_one(
-            {"name": player["name"]}, {"$set": {"role": player["role"]}}
-        )
-        mongo.db.rooms.update_one(
-            {"host_code": code, "players.player_id": player["player_id"]},
-            {"$set": {"players.$.role": player["role"]}},
-        )
+    for p_dict in players_dict_list:
+        p = Player.query.get(p_dict["id"])
+        if p:
+            p.role = p_dict["role"]
+            p.is_alive = True
 
-    mongo.db.rooms.update_one(
-        {"host_code": code},
-        {"$set": {"status": "started", "roles_config": roles_config}}
+    room.status = "started"
+    room.phase = "day"
+    room.day_number = 1
+    room.roles_config = roles_config
+    db.session.commit()
+
+    socketio.emit(
+        "update_roles",
+        {
+            "players": [p.to_dict() for p in room.players],
+            "status": "started",
+            "phase": "day",
+            "day_number": 1
+        },
+        room=code
     )
-
-    for player in players:
-        if isinstance(player["player_id"], ObjectId):
-            player["player_id"] = str(player["player_id"])
-
-    socketio.emit("update_roles", {"players": players}, room=code)
 
     return redirect(url_for("host_bp.host", code=code))
 
 
+@host_bp.post("/set-phase/<code>/<phase>")
+def set_phase(code: str, phase: str):
+    room = Room.query.filter_by(host_code=code).first_or_404()
+    if phase not in ("day", "voting", "night"):
+        return jsonify({"error": "Invalid phase"}), 400
+
+    if phase == "day" and room.phase == "night":
+        room.day_number = (room.day_number or 1) + 1
+
+    room.phase = phase
+    db.session.commit()
+
+    socketio.emit(
+        "phase_changed",
+        {
+            "phase": phase,
+            "day_number": room.day_number
+        },
+        room=code
+    )
+
+    return jsonify({"success": True, "phase": phase, "day_number": room.day_number})
+
+
+@host_bp.post("/toggle-player-status/<code>/<int:player_id>")
+def toggle_player_status(code: str, player_id: int):
+    room = Room.query.filter_by(host_code=code).first_or_404()
+    player = Player.query.filter_by(id=player_id, room_code=code).first_or_404()
+
+    player.is_alive = not player.is_alive
+    db.session.commit()
+
+    stats = calculate_game_stats(room.players)
+
+    socketio.emit(
+        "update_player_status",
+        {
+            "player_id": player.id,
+            "player_name": player.name,
+            "is_alive": player.is_alive,
+            "stats": stats
+        },
+        room=code
+    )
+
+    return jsonify({"success": True, "player_id": player.id, "is_alive": player.is_alive, "stats": stats})
+
+
 @host_bp.post("/end-game/<code>")
 def end_game(code: str):
-    mongo.db.players.delete_many({"room_code": code})
-    mongo.db.rooms.delete_many({"host_code": code})
+    room = Room.query.filter_by(host_code=code).first()
+    if room:
+        socketio.emit("game_ended", {"message": "Игра завершена ведущим"}, room=code)
+        db.session.delete(room)
+        db.session.commit()
 
     return redirect(url_for("home_bp.index"))

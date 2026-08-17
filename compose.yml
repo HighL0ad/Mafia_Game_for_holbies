@@ -1,0 +1,28 @@
+services:
+  web:
+    image: ghcr.io/highl0ad/mafia_game:latest
+    container_name: mafia_web
+    restart: always
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=supersecretkeymafia_prod
+      - DATABASE_URI=sqlite:////app/instance/mafia.db
+      - TZ=Asia/Baku
+    volumes:
+      - mafia_data:/app/instance
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - web_gateway
+    expose:
+      - 8000
+
+volumes:
+  mafia_data:
+
+networks:
+  web_gateway:
+    external: true

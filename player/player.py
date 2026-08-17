@@ -1,17 +1,14 @@
-from bson.objectid import ObjectId
 from flask import render_template
 from flask.blueprints import Blueprint
 
-from database import mongo
+from models import Player
 
 player_bp = Blueprint(
     "player_bp", __name__, url_prefix="/player", template_folder="templates"
 )
 
 
-@player_bp.route("/<id>")
-def player(id: str):
-    oid = ObjectId(id)
-    player = mongo.db.players.find_one_or_404({"_id": oid})
-
-    return render_template("player.html", player=player)
+@player_bp.route("/<int:id>")
+def player(id: int):
+    player_obj = Player.query.get_or_404(id)
+    return render_template("player.html", player=player_obj, room_code=player_obj.room_code)

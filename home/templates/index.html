@@ -1,24 +1,106 @@
-{% extends 'base.html' %} {% block main %}
-<div class="container">
-  <h1 class="mb-4">Welcome to Mafia Game</h1>
-  <div class="actions">
-    <form action="{{ url_for('home_bp.create_game') }}" method="post">
-      <button type="submit" class="btn btn-primary btn-lg btn-block mb-3">
-        Create Room
-      </button>
-    </form>
-    <hr />
-    <p>OR</p>
-    <hr />
-    <div class="join-room">
-      <form action="{{ url_for('home_bp.join_game') }}" method="post">
-        <input type="text" name="player-name" id="player-name" placeholder="Your Name" class="form-control mb-3" />
-        <input type="text" name="room-code" id="room-code" placeholder="Enter Room Code" class="form-control mb-2" />
-        <button type="submit" id="join-room" class="btn btn-success btn-lg btn-block">
-          Join Room
+{% extends 'base.html' %}
+
+{% block title %}Mafia Game{% endblock %}
+
+{% block main %}
+<div class="glass-card">
+    <header class="brand-header">
+        <div class="brand-icon">
+            <i class="fa-solid fa-mask"></i>
+        </div>
+        <h1 class="brand-title"><span data-i18n="brand_title_1">MAFIYA</span> <span data-i18n="brand_title_2" style="color: var(--accent-crimson);">OYUNU</span></h1>
+        <p class="brand-subtitle" data-i18n="brand_subtitle">Şəhər yatır... Mafiya oyanır</p>
+    </header>
+
+    <div class="tabs-nav">
+        <button type="button" class="tab-btn active" onclick="switchTab('join')">
+            <i class="fa-solid fa-right-to-bracket"></i> <span data-i18n="tab_join">Oyuna qoşul</span>
         </button>
-      </form>
+        <button type="button" class="tab-btn" onclick="switchTab('create')">
+            <i class="fa-solid fa-crown"></i> <span data-i18n="tab_host">Aparıcı</span>
+        </button>
     </div>
-  </div>
+
+    <!-- Tab 1: Join Game -->
+    <div id="tab-join" class="tab-content active">
+        <form action="{{ url_for('home_bp.join_game') }}" method="post" id="join-form">
+            <div class="form-group">
+                <label class="form-label" for="player-name" data-i18n="label_nickname">Adınız / Ləqəbiniz</label>
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-user input-icon"></i>
+                    <input type="text" 
+                           name="player-name" 
+                           id="player-name" 
+                           class="form-input" 
+                           placeholder="Məs: Don Karleone" 
+                           data-i18n-placeholder="placeholder_nickname"
+                           maxlength="24"
+                           required 
+                           autocomplete="off">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="room-code" data-i18n="label_room_code">Otaq kodu</label>
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-hashtag input-icon"></i>
+                    <input type="text" 
+                           name="room-code" 
+                           id="room-code" 
+                           class="form-input" 
+                           placeholder="5 rəqəmli kod (məs: 49201)" 
+                           data-i18n-placeholder="placeholder_room_code"
+                           pattern="[0-9]{4,8}"
+                           required 
+                           autocomplete="off">
+                </div>
+            </div>
+
+            <button type="submit" id="join-room" class="btn btn-primary mt-2">
+                <i class="fa-solid fa-play"></i> <span data-i18n="btn_join">Qoşul</span>
+            </button>
+        </form>
+    </div>
+
+    <!-- Tab 2: Create Room (Host) -->
+    <div id="tab-create" class="tab-content">
+        <p style="color: var(--text-secondary); font-size: 0.92rem; margin-bottom: 20px; text-align: left;" data-i18n="host_desc">
+            Aparıcı olmaq, rolların balansını tənzimləmək və oyunu real vaxtda idarə etmək üçün oyun otağı yaradın.
+        </p>
+
+        <form action="{{ url_for('home_bp.create_game') }}" method="post">
+            <button type="submit" class="btn btn-primary">
+                <i class="fa-solid fa-plus-circle"></i> <span data-i18n="btn_create_room">Yeni otaq yarat</span>
+            </button>
+        </form>
+    </div>
 </div>
+
+<script>
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+        if (tabId === 'join') {
+            document.querySelectorAll('.tab-btn')[0].classList.add('active');
+            document.getElementById('tab-join').classList.add('active');
+        } else {
+            document.querySelectorAll('.tab-btn')[1].classList.add('active');
+            document.getElementById('tab-create').classList.add('active');
+        }
+    }
+
+    // Auto-fill room code from URL parameter (?room=12345)
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomParam = urlParams.get('room');
+        if (roomParam) {
+            const roomInput = document.getElementById('room-code');
+            if (roomInput) {
+                roomInput.value = roomParam;
+            }
+            switchTab('join');
+        }
+    });
+</script>
 {% endblock %}

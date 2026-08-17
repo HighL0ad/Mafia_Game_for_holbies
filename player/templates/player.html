@@ -1,86 +1,251 @@
 {% extends 'base.html' %}
 
-{% block main %}
+{% block title %}{{ player.name }} | Mafia Card{% endblock %}
 
-    <div class="card">
-        <div class="content">
-            <div class="back">
-                <div class="back-content">
-                    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" height="75%" width="75%" version="1.1" stroke-width="0.6" stroke-linecap="round" fill="#ffffff" id="Capa_1" viewBox="0 0 32 32" xml:space="preserve">
-                        <g>
-                            <g id="question_x5F_mark">
-                                <g>
-                                    <path d="M17.6,30c0,1.102-0.895,2-2,2s-2-0.898-2-2c0-1.109,0.895-2,2-2S17.6,28.891,17.6,30z"/>
-                                    <path d="M15.676,25.977c-1.336,0-2.59-0.523-3.535-1.469c-0.945-1.105-1.465-2.359-1.465-3.695     s0.52-2.59,1.465-3.371l6.688-6.688C19.584,9.996,20,8.992,20,7.926c0-1.07-0.416-2.074-1.172-2.828     c-1.559-1.559-4.096-1.562-5.654,0C12.416,5.852,12,6.855,12,7.926H8c0-2.137,0.834-4.148,2.348-5.66     c3.02-3.023,8.285-3.02,11.309,0.004C23.168,3.777,24,5.785,24,7.926c0,2.137-0.832,4.145-2.344,5.656l-6.688,6.523     c-0.389,0.391-0.389,1.023,0,1.414c0.391,0.391,1.023,0.391,1.414,0c0.254-0.258,0.293-0.555,0.293-0.711h4     c0,1.336-0.52,2.594-1.465,3.699C18.266,25.453,17.012,25.977,15.676,25.977L15.676,25.977z"/>
-                                </g>
-                            </g>
-                        </g>
-                    </svg>
+{% block main %}
+<div class="role-screen-container">
+    <!-- Top Bar -->
+    <div class="player-top-bar">
+        <div class="player-nickname">
+            <i class="fa-solid fa-user-secret" style="color: var(--accent-crimson);"></i>
+            <span>{{ player.name }}</span>
+        </div>
+        <div class="player-room-tag">
+            <span data-i18n="room_code_label">Otaq kodu</span>: <strong>{{ player.room_code }}</strong>
+        </div>
+    </div>
+
+    <!-- 3D Role Card -->
+    <div class="card-scene">
+        <div class="card-inner {{ 'theme-' ~ player.role.lower() if player.role else 'theme-unknown' }}" id="role-card" onclick="flipCard()">
+            <!-- Mystery Front Face -->
+            <div class="card-face card-front">
+                <div class="card-front-content">
+                    <div class="mystery-seal">
+                        <i class="fa-solid fa-question"></i>
+                    </div>
+                    <div>
+                        <h2 class="mystery-title" data-i18n="your_role">Sizin Rolunuz</h2>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 8px;" id="mystery-subtext">
+                            <span data-i18n="{{ 'role_dealt_hint' if player.role else 'waiting_role_deal' }}">
+                                {{ 'Rol paylandı! Açmaq üçün toxunun' if player.role else 'Rolların paylanması gözlənilir...' }}
+                            </span>
+                        </p>
+                    </div>
+                    <div class="tap-hint">
+                        <i class="fa-solid fa-hand-pointer"></i> <span data-i18n="tap_to_reveal">Açmaq üçün toxunun</span>
+                    </div>
                 </div>
             </div>
-            <div class="front">
-                
-                <div class="img">
-                    <div class="circle">
+
+            <!-- Revealed Back Face -->
+            <div class="card-face card-back">
+                <div class="card-back-header">
+                    <div class="role-badge-icon" id="role-icon">
+                        <i class="fa-solid fa-mask"></i>
+                    </div>
+                    <div class="role-team-pill" id="role-team">Şəhər</div>
+                    <h1 class="role-name-display" id="role-title">{{ player.role if player.role else 'Gözlənilir...' }}</h1>
                 </div>
-                <div class="circle" id="right"></div>
-                <div class="circle" id="bottom"></div>
+
+                <div class="role-desc-box" id="role-desc">
+                    <span data-i18n="waiting_role_deal">Rolların paylanması gözlənilir...</span>
                 </div>
-                <div class="front-content">
-                    <h1 class="title">
-                        You are <br>
-                        <span id="role">{{ player.role if player.role else '?' }}</span>
-                    </h1>
-                </div>
+
+                <button type="button" class="hide-role-btn" onclick="event.stopPropagation(); flipCard();">
+                    <i class="fa-solid fa-eye-slash"></i> <span data-i18n="hide_role">Rolu gizlət</span>
+                </button>
             </div>
         </div>
     </div>
 
-    <script>
-        const color_list = [
-            "#E74C3C",
-            "#8E44AD",
-            "#3498DB",
-            "#2ECC71",
-            "#F1C40F",
-            "#E67E22",
-            "#ECF0F1",
-        ]
+    <!-- Eliminated banner if marked dead by host -->
+    <div id="eliminated-banner" class="eliminated-banner {{ 'show' if not player.is_alive else '' }}">
+        <i class="fa-solid fa-skull"></i>
+        <span data-i18n="you_are_eliminated">Siz bu oyundan çıxarıldınız</span>
+    </div>
+</div>
 
-        let index = parseInt(Math.random() * color_list.length);
+<!-- Night / Phase Fullscreen Shroud for Players -->
+<div id="player-phase-overlay" class="player-phase-overlay">
+    <div class="phase-overlay-icon" id="phase-overlay-icon">
+        <i class="fa-solid fa-moon"></i>
+    </div>
+    <h2 class="phase-overlay-title" id="phase-overlay-title" data-i18n="night_overlay_title">Gecə düşdü...</h2>
+    <p class="phase-overlay-desc" id="phase-overlay-desc" data-i18n="night_overlay_subtitle">
+        Bütün şəhər yatır. Gözlərinizi yumun və aparıcını dinləyin.
+    </p>
+    <button type="button" class="btn btn-secondary mt-4" style="max-width: 220px;" onclick="closePhaseOverlay()">
+        <i class="fa-solid fa-eye"></i> <span data-i18n="peek_role">Rola baxmaq</span>
+    </button>
+</div>
 
-        document.documentElement.style.setProperty('--outline-color', color_list[index]);
+<script>
+    const socket = io();
+    const playerName = "{{ player.name }}";
+    const playerId = {{ player.id }};
+    const roomCode = "{{ player.room_code }}";
+    let currentRoleKey = "{{ player.role.lower() if player.role else '' }}";
 
-        var socket = io();
-        var playerName = "{{ player.name }}";
+    const roleIcons = {
+        'mafia': 'fa-solid fa-gun',
+        'don': 'fa-solid fa-crown',
+        'doctor': 'fa-solid fa-user-doctor',
+        'sheriff': 'fa-solid fa-shield-halved',
+        'maniac': 'fa-solid fa-skull-crossbones',
+        'kamikaze': 'fa-solid fa-bomb',
+        'villager': 'fa-solid fa-users'
+    };
 
-        socket.on('connect', function () {
-            console.log('Connected to server');
-            socket.emit('join_room', { room: "{{ player.room_code }}" });
-        });
+    // Push Notifications API (for when the phone screen is locked or app minimized)
+    function requestPushPermission() {
+        if ("Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission();
+        }
+    }
 
-        socket.on('update_roles', function (data) {
-            var updatedPlayer = data.players.find(function (player) {
-                return player.name === playerName;
-            });
+    function sendPushNotification(title, body) {
+        if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
+            try {
+                new Notification(title, {
+                    body: body,
+                    icon: "{{ url_for('static', filename='img/favicon.ico') }}"
+                });
+            } catch (e) {}
+        }
+    }
 
-            if (updatedPlayer) {
-                var roleDisplay = document.getElementById('role');
-                roleDisplay.innerHTML = updatedPlayer.role;
+    document.addEventListener('click', () => requestPushPermission(), { once: true });
+    document.addEventListener('touchstart', () => requestPushPermission(), { once: true });
+
+    function updateRoleDisplay(roleName) {
+        if (!roleName) return;
+        const key = roleName.toLowerCase();
+        currentRoleKey = key;
+
+        const card = document.getElementById('role-card');
+        card.className = `card-inner theme-${key}`;
+
+        const roleTitle = document.getElementById('role-title');
+        const roleTeam = document.getElementById('role-team');
+        const roleIcon = document.getElementById('role-icon');
+        const roleDesc = document.getElementById('role-desc');
+
+        if (roleTitle) roleTitle.textContent = t('role_' + key);
+        if (roleTeam) {
+            if (key === 'mafia') roleTeam.textContent = t('team_mafia');
+            else if (key === 'don') roleTeam.textContent = t('team_don');
+            else if (key === 'maniac') roleTeam.textContent = t('team_neutral');
+            else roleTeam.textContent = t('team_town');
+        }
+        if (roleIcon) {
+            const iconClass = roleIcons[key] || 'fa-solid fa-mask';
+            roleIcon.innerHTML = `<i class="${iconClass}"></i>`;
+        }
+        if (roleDesc) {
+            roleDesc.innerHTML = t('desc_' + key);
+        }
+
+        const subtext = document.getElementById('mystery-subtext');
+        if (subtext) {
+            subtext.innerHTML = `<span data-i18n="role_dealt_hint">${t('role_dealt_hint')}</span>`;
+        }
+    }
+
+    window.addEventListener('languageChanged', () => {
+        if (currentRoleKey) {
+            updateRoleDisplay(currentRoleKey);
+        }
+    });
+
+    // Initialize with current role if already set
+    {% if player.role %}
+    updateRoleDisplay("{{ player.role }}");
+    {% endif %}
+
+    function flipCard() {
+        const card = document.getElementById('role-card');
+        card.classList.toggle('is-flipped');
+        sounds.playClick();
+        if (navigator.vibrate) {
+            navigator.vibrate(40);
+        }
+    }
+
+    function closePhaseOverlay() {
+        document.getElementById('player-phase-overlay').classList.remove('show');
+    }
+
+    socket.on('connect', function () {
+        socket.emit('join_room', { room: roomCode });
+    });
+
+    // Listen to Phase Changes (Day / Voting / Night)
+    socket.on('phase_changed', function (data) {
+        const overlay = document.getElementById('player-phase-overlay');
+        const icon = document.getElementById('phase-overlay-icon');
+        const title = document.getElementById('phase-overlay-title');
+        const desc = document.getElementById('phase-overlay-desc');
+
+        if (data.phase === 'night') {
+            icon.innerHTML = '<i class="fa-solid fa-moon"></i>';
+            title.textContent = t('night_overlay_title');
+            desc.textContent = t('night_overlay_subtitle');
+            overlay.classList.add('show');
+            sounds.playNight();
+            sendPushNotification(t('night_overlay_title'), t('night_overlay_subtitle'));
+            if (navigator.vibrate) navigator.vibrate([150, 100, 150]);
+        } else if (data.phase === 'day') {
+            overlay.classList.remove('show');
+            sounds.playDay();
+            showToast(`${t('phase_day_short')} #${data.day_number}!`, 'success');
+            sendPushNotification(`${t('phase_day_short')} #${data.day_number}!`, t('phase_day'));
+            if (navigator.vibrate) navigator.vibrate(100);
+        } else if (data.phase === 'voting') {
+            overlay.classList.remove('show');
+            sounds.playVoting();
+            showToast(t('phase_voting'), 'info');
+            sendPushNotification(t('voting_overlay_title'), t('voting_overlay_subtitle'));
+        }
+    });
+
+    socket.on('update_roles', function (data) {
+        if (data.players) {
+            const me = data.players.find(p => p.name === playerName || p.id === playerId);
+            if (me && me.role) {
+                updateRoleDisplay(me.role);
+                sounds.playCardDeal();
+                const roleName = t('role_' + me.role.toLowerCase());
+                showToast(`${t('role_assigned_toast')} ${roleName}!`, 'success', 5000);
+                sendPushNotification(t('your_role'), `${t('role_assigned_toast')} ${roleName}!`);
+                if (navigator.vibrate) {
+                    navigator.vibrate([100, 50, 100]);
+                }
             }
-        });
+        }
+    });
 
-        /* document.addEventListener('DOMContentLoaded', function () {
-            var card = document.querySelector('.card');
+    socket.on('update_player_status', function (data) {
+        if (data.player_id === playerId) {
+            const banner = document.getElementById('eliminated-banner');
+            if (data.is_alive) {
+                banner.classList.remove('show');
+                showToast(t('player_restored_toast'), 'success');
+                sendPushNotification(t('app_title'), t('player_restored_toast'));
+            } else {
+                banner.classList.add('show');
+                sounds.playEliminated();
+                showToast(t('player_eliminated_toast'), 'error');
+                sendPushNotification(t('you_are_eliminated'), t('player_eliminated_toast'));
+            }
+        }
+    });
 
-            card.addEventListener('touchstart', function () {
-                card.classList.add('hover');
-            });
-
-            card.addEventListener('touchend', function () {
-                card.classList.remove('hover');
-            });
-        }); */
-    </script>
-
+    socket.on('game_ended', function (data) {
+        showToast(t('game_ended_toast'), 'info');
+        setTimeout(() => {
+            window.location.href = "{{ url_for('home_bp.index') }}";
+        }, 1500);
+    });
+</script>
 {% endblock %}

@@ -1,13 +1,12 @@
-from bson import ObjectId
-from flask import redirect, render_template, request, url_for
+from flask import flash, redirect, render_template, request, url_for
 from flask.blueprints import Blueprint
 
-from database import mongo
+from database import db
+from models import Player, Room, get_default_roles_config
 from utils.room_code import generate_room_code
 from websock import socketio
 
-home_bp = Blueprint("home_bp", __name__, url_prefix="/",
-                    template_folder="templates")
+home_bp = Blueprint("home_bp", __name__, url_prefix="/", template_folder="templates")
 
 
 @home_bp.route("/")
@@ -17,44 +16,56 @@ def index():
 
 @home_bp.post("/create_game")
 def create_game():
-    code = generate_room_code()
+    code = str(generate_room_code())
+    # Ensure code uniqueness
+    while Room.query.filter_by(host_code=code).first() is not None:
+        code = str(generate_room_code())
 
-    mongo.db.rooms.insert_one(
-        {"host_code": str(code), "players": [], "status": "waiting"})
+    default_config = get_default_roles_config(0)
+    room = Room(host_code=code, status="waiting", roles_config=default_config)
+    db.session.add(room)
+    db.session.commit()
+
     return redirect(url_for("host_bp.host", code=code))
 
 
 @home_bp.post("/join_game")
 def join_game():
-    code = request.form["room-code"]
-    name = request.form["player-name"]
+    code = request.form.get("room-code", "").strip()
+    name = request.form.get("player-name", "").strip()
 
-    room = mongo.db.rooms.find_one({"host_code": code})
-    player = mongo.db.players.find_one({"name": name})
+    if not code or not name:
+        return redirect(url_for("home_bp.index"))
 
+    room = Room.query.filter_by(host_code=code).first()
     if not room:
-        return "Room not found", 404
+        return render_template("404.html", message=f"Комната {code} не найдена"), 404
 
+    # Look for existing player in THIS room with the same name
+    player = Player.query.filter_by(name=name, room_code=code).first()
     if not player:
-        player_id = mongo.db.players.insert_one(
-            {"name": name, "room_code": code, "role": None}
-        ).inserted_id
+        player = Player(name=name, room_code=code, role=None, is_alive=True)
+        db.session.add(player)
+        db.session.commit()
 
-        mongo.db.rooms.update_one(
-            {"host_code": code},
-            {"$push": {"players": {"player_id": player_id, "name": name, "role": None}}},
-        )
-    else:
-        player_id = player["_id"]
+        # Update default roles config for host if game hasn't started
+        if room.status == "waiting":
+            player_count = len(room.players)
+            # update auto-calculated config
+            cfg = room.roles_config or {}
+            special_count = sum(v for k, v in cfg.items() if k != "villager")
+            if not cfg or special_count == 0:
+                room.roles_config = get_default_roles_config(player_count)
+            else:
+                cfg["villager"] = max(0, player_count - special_count)
+                room.roles_config = cfg
+            db.session.commit()
 
-    players = list(mongo.db.rooms.find_one(
-        {"host_code": code})["players"])
+    players_data = [p.to_dict() for p in room.players]
+    socketio.emit(
+        "update_player_list",
+        {"players": players_data, "player_count": len(players_data)},
+        room=code
+    )
 
-    for player in players:
-        if isinstance(player["player_id"], ObjectId):
-            player["player_id"] = str(player["player_id"])
-
-    socketio.emit('update_player_list', {'players': players}, room=code)
-
-    return redirect(url_for("player_bp.player", id=player_id))
-
+    return redirect(url_for("player_bp.player", id=player.id))

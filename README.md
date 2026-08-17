@@ -1,115 +1,72 @@
-# Mafia Game
-![](https://github.com/VoiceOfDarkness/Mafia_Game_for_holbies/blob/master/static/img/Screenshot_7-8-2024_124354_mafia-for-holbies-4b73ef211906.herokuapp.com.jpeg)
-Welcome to the Mafia Game, a web-based version of the classic social deduction game. This project allows players to join a room, receive random roles, and play the game in real-time.
+# 🎭 Mafia Game Online
 
-## Table of Contents
+Современная многопользовательская веб-игра в «Мафию» в реальном времени с поддержкой азербайджанского, русского и английского языков (AZ/RU/EN), 3D-анимацией карточек ролей, синхронизацией игровых фаз (День / Голосование / Ночь), звуковыми эффектами Web Audio API и push-уведомлениями.
 
-- [Features](#features)
-- [Technologies Used](#technologies-used)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Running the Application](#running-the-application)
-- [Game Rules](#game-rules)
-- [Project Structure](#project-structure)
-- [Contributing](#contributing)
-- [Contact](#contact)
+---
 
-## Features
+## 🚀 Особенности
 
-- Create and join game rooms with a unique code.
-- Randomly assigned roles for players.
-- Real-time updates using Flask-SocketIO.
-- Responsive design for an optimal experience on different devices.
+- 🎲 **3D Interactive Role Cards**: Анимированные 3D карточки ролей с тактильной вибрацией и звуковыми эффектами.
+- 🌐 **Мультиязычность (AZ, RU, EN)**: Переключение языков на лету с сохранением выбора.
+- ☀️🌙 **Синхронизация фаз в реальном времени**:
+  - **☀️ День**: Таймер речи для игроков (60 секунд).
+  - **🗳️ Голосование**: Выбор исключаемого игрока.
+  - **🌙 Ночь**: Затемнение экранов всех игроков («Город засыпает») с ночным колоколом.
+- 📊 **Баланс сил и авто-определение победителя**: Подсчет живых сил (Мафия vs Мирный город) и уведомление о победе.
+- 🔊 **Звуковой движок (Web Audio API)**: Мгновенные синтезированные звуковые эффекты без тяжелых внешних файлов.
+- 📱 **Push & Vibration**: Web Notifications API и Vibration API для экранов блокировки.
+- ⚡ **SQLite + SQLAlchemy**: Легковесная и надежная база данных без необходимости во внешних сервисах.
+- 🐳 **Docker & GHCR CI/CD**: Автоматический деплой на VPS через GitHub Actions.
 
-## Technologies Used
+---
 
-- **Frontend**: HTML, CSS, JavaScript
-- **Backend**: Python, Poetry, Flask, Flask-SocketIO, MongoDB
+## 🛠️ Стек технологий
 
-## Getting Started
+- **Backend**: Python 3.11 / Flask / Flask-SQLAlchemy / Flask-SocketIO / Gevent
+- **Database**: SQLite
+- **Frontend**: Vanilla JS (ES6+), HTML5, Modern CSS (Glassmorphism & 3D Transforms)
+- **Real-time**: WebSockets (Socket.IO + Gevent-WebSocket)
+- **Audio & Haptics**: Web Audio API, Vibration API, Web Notifications API
+- **Deployment**: Docker, Nginx Reverse Proxy, Let's Encrypt SSL, GitHub Actions CI/CD
 
-### Prerequisites
+---
 
-- Poetry
+## 💻 Локальный запуск
 
-### Installation
+```bash
+# 1. Клонировать репозиторий
+git clone https://github.com/HighL0ad/Mafia_Game.git
+cd Mafia_Game
 
-1. Clone the repository:
+# 2. Создать виртуальное окружение
+python3 -m venv venv
+source venv/bin/activate
 
-   ```sh
-   git clone https://github.com/VoiceOfDarkness/Mafia_Game_for_holbies
-   cd mafia-game
-   ```
+# 3. Установить зависимости
+pip install -r requirements.txt
 
-2. run with python or gunicorn
-   ```sh
-   python app.py
-   or
-   gunicorn -k gevent -w 1 app:app
-   ```
+# 4. Запустить тесты
+pytest
 
-### Running the Application
-
-1. Open your web browser and navigate to `http://localhost:5000` or `http://localhost:8000`.
-2. Create a new game room or join an existing one using the room code.
-3. Enter your name and wait for the game to start once all players have joined.
-
-## Game Rules
-
-- **Mafia**: Eliminate the villagers without being discovered.
-- **Don**: The leader of the Mafia, working with them to eliminate villagers.
-- **Doctor**: Save players from being eliminated.
-- **Sheriff**: Identify and eliminate the Mafia members.
-- **Maniac**: Eliminate as many players as possible.
-- **Villagers**: Identify and eliminate the Mafia members.
-- **Kamikaze**: Sacrifice themselves to take out a Mafia member.
-
-## Project Structure
-```
- Procfile
-├── README.md
-├── app.py
-├── config.py
-├── database.py
-├── home
-│   ├── __init__.py
-│   ├── home.py
-│   └── templates
-│       └── index.html
-├── host
-│   ├── __init__.py
-│   ├── host.py
-│   └── templates
-│       └── host.html
-├── player
-│   ├── __init__.py
-│   ├── player.py
-│   └── templates
-│       └── player.html
-├── poetry.lock
-├── pyproject.toml
-├── static
-│   ├── css
-│   │   ├── 404.css
-│   │   └── styles.css
-│   ├── host.html
-│   ├── img
-│   │   └── favicon.ico
-│   └── role.html
-├── templates
-│   ├── 404.html
-│   └── base.html
-├── utils
-│   ├── role.py
-│   └── room_code.py
-└── websock.py
+# 5. Запустить сервер
+python app.py
 ```
 
+Сервер будет доступен по адресу: `http://localhost:8000`
 
-## Contributing
-Contributions are welcome! Please open an issue or submit a pull request.
+---
 
-## Contact
-- **Email**: abil.samedov502@gmail.com
-- **GitHub**: [VoiceOfDarkness](https://github.com/voiceofdarkness)
+## 🚢 Деплой на VPS
+
+Проект использует автоматизированный CI/CD Pipeline (`.github/workflows/deploy.yml`):
+
+1. При пуше в `master` запускаются unit-тесты (`pytest`).
+2. Собирается Docker-образ и публикуется в **GitHub Container Registry (`ghcr.io/highl0ad/mafia_game`)**.
+3. Файл `compose.yml` копируется на VPS, и контейнер перезапускается в фоне с подключением к сети `web_gateway`.
+4. Nginx Reverse Proxy проксирует домен `mafia.abil.online` на контейнер `mafia_web:8000`.
+
+---
+
+## 📄 Лицензия
+
+MIT License
