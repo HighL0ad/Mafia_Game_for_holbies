@@ -536,10 +536,16 @@
         const rosterList = document.getElementById('results-roster-list');
         const statMafia = document.getElementById('results-stat-mafia');
         const statTown = document.getElementById('results-stat-town');
+        const statDuration = document.getElementById('results-stat-duration');
 
         if (data.stats) {
             if (statMafia) statMafia.textContent = data.stats.alive_mafia ?? 0;
             if (statTown) statTown.textContent = data.stats.alive_town ?? 0;
+        }
+
+        const durSec = data.duration_seconds || (data.stats ? data.stats.duration_seconds : 0);
+        if (statDuration) {
+            statDuration.textContent = formatGameDuration(durSec);
         }
 
         let myTeam = 'town';
@@ -638,6 +644,16 @@
 
         overlay.style.display = 'flex';
     }
+
+    function formatGameDuration(totalSeconds) {
+        if (!totalSeconds || totalSeconds < 0) totalSeconds = 0;
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+        if (mins > 0) {
+            return `${mins} ${t('time_minutes_short') || 'dəq'} ${secs} ${t('time_seconds_short') || 'san'}`;
+        }
+        return `${secs} ${t('time_seconds_short') || 'san'}`;
+    }
 </script>
 
 <!-- End Game Results Overlay -->
@@ -655,6 +671,10 @@
         </div>
 
         <div class="results-stats-row">
+            <div class="results-stats-item">
+                <span class="text-muted" data-i18n="stat_game_duration">Oyun müddəti:</span>
+                <span id="results-stat-duration" class="results-stats-val" style="color: #ffd166;">0 san</span>
+            </div>
             <div class="results-stats-item">
                 <span class="text-muted" data-i18n="stat_alive_town">Sağ qalan şəhər:</span>
                 <span id="results-stat-town" class="results-stats-val" style="color: var(--color-success);">0</span>

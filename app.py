@@ -28,7 +28,8 @@ with app.app_context():
         for col, col_type, default in [
             ("phase", "VARCHAR(32)", "'day'"),
             ("day_number", "INTEGER", "1"),
-            ("custom_roles", "JSON", "'[]'")
+            ("custom_roles", "JSON", "'[]'"),
+            ("started_at", "DATETIME", "NULL")
         ]:
             try:
                 conn.execute(db.text(f"ALTER TABLE rooms ADD COLUMN {col} {col_type} DEFAULT {default}"))

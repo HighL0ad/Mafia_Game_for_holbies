@@ -169,6 +169,7 @@ def start_game(code: str):
     room.status = "started"
     room.phase = "day"
     room.day_number = 1
+    room.started_at = datetime.utcnow()
     room.roles_config = roles_config
     db.session.commit()
 
@@ -219,6 +220,9 @@ def toggle_player_status(code: str, player_id: int):
     db.session.commit()
 
     stats = calculate_game_stats(room.players)
+    started = room.started_at or room.created_at or datetime.utcnow()
+    duration_seconds = max(0, int((datetime.utcnow() - started).total_seconds()))
+    stats["duration_seconds"] = duration_seconds
 
     socketio.emit(
         "update_player_status",
@@ -240,6 +244,10 @@ def end_game(code: str):
     room = Room.query.filter_by(host_code=code).first()
     if room:
         stats = calculate_game_stats(room.players)
+        started = room.started_at or room.created_at or datetime.utcnow()
+        duration_seconds = max(0, int((datetime.utcnow() - started).total_seconds()))
+        stats["duration_seconds"] = duration_seconds
+
         roster = []
         for p in room.players:
             roster.append({
@@ -256,6 +264,7 @@ def end_game(code: str):
                 "winner": stats.get("winner"),
                 "stats": stats,
                 "roster": roster,
+                "duration_seconds": duration_seconds,
                 "message": "Игра завершена"
             },
             room=code

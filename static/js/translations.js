@@ -120,6 +120,9 @@ const TRANSLATIONS = {
         stat_alive_town: "Sağ qalan şəhər:",
         stat_alive_mafia: "Sağ qalan mafiya:",
         stat_alive_neutral: "Sağ qalan tək qatil:",
+        stat_game_duration: "Oyun müddəti:",
+        time_minutes_short: "dəq",
+        time_seconds_short: "san",
         
         // Custom Roles Builder
         add_custom_role_btn: "Öz rolunu yarat",
@@ -276,6 +279,9 @@ const TRANSLATIONS = {
         stat_alive_town: "Выжившие мирные:",
         stat_alive_mafia: "Выжившая мафия:",
         stat_alive_neutral: "Выжившие маньяки:",
+        stat_game_duration: "Время игры:",
+        time_minutes_short: "мин",
+        time_seconds_short: "сек",
         
         // Custom Roles Builder
         add_custom_role_btn: "Создать свою роль",
@@ -432,6 +438,9 @@ const TRANSLATIONS = {
         stat_alive_town: "Surviving Town:",
         stat_alive_mafia: "Surviving Mafia:",
         stat_alive_neutral: "Surviving Solo:",
+        stat_game_duration: "Match Duration:",
+        time_minutes_short: "min",
+        time_seconds_short: "sec",
         
         // Custom Roles Builder
         add_custom_role_btn: "Create Custom Role",

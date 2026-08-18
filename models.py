@@ -40,6 +40,7 @@ class Room(db.Model):
     day_number = db.Column(db.Integer, default=1)
     roles_config = db.Column(db.JSON, default=dict)
     custom_roles = db.Column(db.JSON, default=list)
+    started_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     players = db.relationship(
@@ -59,6 +60,7 @@ class Room(db.Model):
             "day_number": self.day_number or 1,
             "roles_config": self.roles_config or {},
             "custom_roles": self.custom_roles or [],
+            "started_at": self.started_at.isoformat() if self.started_at else None,
             "players": [p.to_dict() for p in self.players],
             "player_count": len(self.players)
         }
