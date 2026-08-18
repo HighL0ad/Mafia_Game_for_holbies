@@ -496,6 +496,23 @@
         }
     });
 
+    socket.on('game_ended', function (data) {
+        sounds.playVictory();
+        let winTitle = t('game_over_title') || 'OYUN BAŞA ÇATDI';
+        if (data.winner === 'mafia') winTitle = t('winner_mafia_title') || 'MAFİYA QALİB GƏLDİ!';
+        else if (data.winner === 'town') winTitle = t('winner_town_title') || 'DİNC ŞƏHƏR QALİB GƏLDİ!';
+        else if (data.winner === 'maniac') winTitle = t('winner_maniac_title') || 'MANYAQ QALİB GƏLDİ!';
+
+        showToast(winTitle, 'success', 10000);
+
+        const pill = document.getElementById('status-pill');
+        if (pill) {
+            pill.textContent = winTitle;
+            pill.style.background = 'rgba(46, 196, 182, 0.15)';
+            pill.style.color = 'var(--color-success)';
+        }
+    });
+
     // Live Voting Host Management
     function toggleCandidateChip(el) {
         el.classList.toggle('selected');

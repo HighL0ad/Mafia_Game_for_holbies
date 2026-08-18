@@ -15,8 +15,8 @@
         </div>
     </div>
 
-    <!-- 3D Role Card -->
-    <div class="card-scene">
+    <!-- 3D Role Card (Hidden in Ghost Mode) -->
+    <div class="card-scene" id="card-scene-container" style="{{ 'display: none;' if not player.is_alive else '' }}">
         <div class="card-inner {{ 'theme-' ~ player.role.lower() if player.role else 'theme-unknown' }}" id="role-card" onclick="flipCard()">
             <!-- Mystery Front Face -->
             <div class="card-face card-front">
@@ -527,6 +527,8 @@
                 if (banner) banner.classList.add('show');
                 const ghostContainer = document.getElementById('ghost-roster-container');
                 if (ghostContainer) ghostContainer.style.display = 'flex';
+                const cardScene = document.getElementById('card-scene-container');
+                if (cardScene) cardScene.style.display = 'none';
                 showToast(t('you_were_shot_title'), 'error', 10000);
                 sendPushNotification(t('you_were_shot_title'), t('you_were_shot_desc'));
             } else {
@@ -596,6 +598,8 @@
     function renderGhostRoster(players) {
         const container = document.getElementById('ghost-roster-container');
         const list = document.getElementById('ghost-player-list');
+        const cardScene = document.getElementById('card-scene-container');
+        if (cardScene && !isPlayerAlive) cardScene.style.display = 'none';
         if (!container || !list) return;
 
         container.style.display = 'flex';
@@ -639,15 +643,18 @@
             isPlayerAlive = data.is_alive;
             const banner = document.getElementById('eliminated-banner');
             const ghostContainer = document.getElementById('ghost-roster-container');
+            const cardScene = document.getElementById('card-scene-container');
 
             if (data.is_alive) {
                 banner.classList.remove('show');
                 if (ghostContainer) ghostContainer.style.display = 'none';
+                if (cardScene) cardScene.style.display = '';
                 showToast(t('player_restored_toast'), 'success');
                 sendPushNotification(t('app_title'), t('player_restored_toast'));
             } else {
                 banner.classList.add('show');
                 if (ghostContainer) ghostContainer.style.display = 'flex';
+                if (cardScene) cardScene.style.display = 'none';
                 sounds.playEliminated();
                 showToast(t('player_eliminated_toast'), 'error');
                 sendPushNotification(t('you_are_eliminated'), t('player_eliminated_toast'));

@@ -50,6 +50,35 @@ def calculate_game_stats(players):
     }
 
 
+def check_and_trigger_game_end(room, stats):
+    if not stats or not stats.get("winner"):
+        return False
+    winner = stats["winner"]
+    started = room.started_at or room.created_at or datetime.utcnow()
+    duration_seconds = max(0, int((datetime.utcnow() - started).total_seconds()))
+    stats["duration_seconds"] = duration_seconds
+
+    roster = [{
+        "id": p.id,
+        "name": p.name,
+        "role": p.role,
+        "role_info": p.role_info,
+        "is_alive": p.is_alive
+    } for p in room.players]
+
+    socketio.emit(
+        "game_ended",
+        {
+            "winner": winner,
+            "stats": stats,
+            "duration_seconds": duration_seconds,
+            "roster": roster
+        },
+        room=room.host_code
+    )
+    return True
+
+
 @host_bp.route("/<code>")
 def host(code: str):
     room = Room.query.filter_by(host_code=code).first_or_404()
@@ -235,6 +264,9 @@ def set_phase(code: str, phase: str):
         room=code
     )
 
+    if stats.get("winner"):
+        check_and_trigger_game_end(room, stats)
+
     return jsonify({
         "success": True, 
         "phase": phase, 
@@ -268,6 +300,9 @@ def toggle_player_status(code: str, player_id: int):
         },
         room=code
     )
+
+    if stats.get("winner"):
+        check_and_trigger_game_end(room, stats)
 
     return jsonify({"success": True, "player_id": player.id, "is_alive": player.is_alive, "stats": stats, "all_players": [p.to_dict() for p in room.players]})
 
