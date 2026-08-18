@@ -286,13 +286,16 @@
                         <span>{{ cr.name }}</span>
                     </span>
                     <div class="controls-stepper">
-                        <button type="button" class="stepper-btn" onclick="changeRole('{{ cr.id }}', -1)">-</button>
+                        <button type="button" class="stepper-btn" id="btn-minus-{{ cr.id }}" onclick="handleCustomRoleMinus('{{ cr.id }}')">
+                            {% if roles_config.get(cr.id, cr.get('count', 1)) == 0 %}
+                            <i class="fa-solid fa-trash-can" style="color: var(--color-danger); font-size: 0.82rem;"></i>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </button>
                         <span id="val-{{ cr.id }}" class="stepper-val">{{ roles_config.get(cr.id, cr.get('count', 1)) }}</span>
                         <input type="hidden" name="{{ cr.id }}" id="{{ cr.id }}" value="{{ roles_config.get(cr.id, cr.get('count', 1)) }}">
                         <button type="button" class="stepper-btn" onclick="changeRole('{{ cr.id }}', 1)">+</button>
-                        <button type="button" class="stepper-delete-btn" title="Sil" onclick="deleteCustomRole('{{ cr.id }}')">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
                     </div>
                 </div>
                 {% endfor %}
@@ -625,6 +628,17 @@
         updateVillagerCount();
     });
 
+    function handleCustomRoleMinus(roleId) {
+        const input = document.getElementById(roleId);
+        if (!input) return;
+        const currentVal = parseInt(input.value) || 0;
+        if (currentVal === 0) {
+            deleteCustomRole(roleId);
+        } else {
+            changeRole(roleId, -1);
+        }
+    }
+
     function changeRole(role, delta) {
         const input = document.getElementById(role);
         const valDisplay = document.getElementById('val-' + role);
@@ -642,6 +656,19 @@
 
         input.value = newValue;
         if (valDisplay) valDisplay.textContent = newValue;
+
+        // Morph minus button into trash can for custom roles when count reaches 0
+        if (role.startsWith('custom_')) {
+            const minusBtn = document.getElementById('btn-minus-' + role);
+            if (minusBtn) {
+                if (newValue === 0) {
+                    minusBtn.innerHTML = '<i class="fa-solid fa-trash-can" style="color: var(--color-danger); font-size: 0.82rem;"></i>';
+                } else {
+                    minusBtn.innerHTML = '-';
+                }
+            }
+        }
+
         updateVillagerCount();
     }
 
@@ -931,13 +958,10 @@
                             <span>${cr.name}</span>
                         </span>
                         <div class="controls-stepper">
-                            <button type="button" class="stepper-btn" onclick="changeRole('${cr.id}', -1)">-</button>
+                            <button type="button" class="stepper-btn" id="btn-minus-${cr.id}" onclick="handleCustomRoleMinus('${cr.id}')">-</button>
                             <span id="val-${cr.id}" class="stepper-val">1</span>
                             <input type="hidden" name="${cr.id}" id="${cr.id}" value="1">
                             <button type="button" class="stepper-btn" onclick="changeRole('${cr.id}', 1)">+</button>
-                            <button type="button" class="stepper-delete-btn" title="Sil" onclick="deleteCustomRole('${cr.id}')">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
                         </div>
                     `;
                     grid.appendChild(row);
