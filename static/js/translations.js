@@ -137,6 +137,7 @@ const TRANSLATIONS = {
         mafia_target_label: "Mafiyanın hədəfi:",
         waiting_mafia_choice: "Seçim gözlənilir...",
         mafia_chose_target_toast: "Mafiya hədəf seçdi:",
+        room_closed_toast: "Otaq aparıcı tərəfindən bağlandı. Əsas menyuya yönləndirilirsiniz...",
         
         // Custom Roles Builder
         add_custom_role_btn: "Öz rolunu yarat",
@@ -310,6 +311,7 @@ const TRANSLATIONS = {
         mafia_target_label: "Цель мафии:",
         waiting_mafia_choice: "Ожидается выбор...",
         mafia_chose_target_toast: "Мафия выбрала цель:",
+        room_closed_toast: "Комната была закрыта ведущим. Возвращение в главное меню...",
         
         // Custom Roles Builder
         add_custom_role_btn: "Создать свою роль",
@@ -483,6 +485,7 @@ const TRANSLATIONS = {
         mafia_target_label: "Mafia's Target:",
         waiting_mafia_choice: "Waiting for choice...",
         mafia_chose_target_toast: "Mafia selected target:",
+        room_closed_toast: "The room was closed by the host. Redirecting to home...",
         
         // Custom Roles Builder
         add_custom_role_btn: "Create Custom Role",

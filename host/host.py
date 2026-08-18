@@ -81,7 +81,10 @@ def check_and_trigger_game_end(room, stats):
 
 @host_bp.route("/<code>")
 def host(code: str):
-    room = Room.query.filter_by(host_code=code).first_or_404()
+    room = Room.query.filter_by(host_code=code).first()
+    if not room:
+        return redirect(url_for("home_bp.index"))
+
     player_count = len(room.players)
 
     roles_config = room.roles_config or {}
@@ -334,6 +337,13 @@ def end_game(code: str):
                 "roster": roster,
                 "duration_seconds": duration_seconds,
                 "message": "Игра завершена"
+            },
+            room=code
+        )
+        socketio.emit(
+            "room_closed",
+            {
+                "message": "Otaq bağlandı"
             },
             room=code
         )

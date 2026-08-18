@@ -670,6 +670,13 @@
         showGameResults(data);
     });
 
+    socket.on('room_closed', function (data) {
+        showToast(t('room_closed_toast') || 'Otaq bağlandı. Əsas menyuya yönləndirilirsiniz...', 'warning', 5000);
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 2200);
+    });
+
     function showGameResults(data) {
         const overlay = document.getElementById('game-results-overlay');
         if (!overlay) return;
