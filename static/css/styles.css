@@ -1707,3 +1707,232 @@ body {
     border-radius: var(--radius-md);
     margin: 0;
 }
+
+/* ==========================================================================
+   END-GAME RESULTS OVERLAY (ALL PLAYERS SUMMARY)
+   ========================================================================== */
+
+.game-results-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(8, 10, 16, 0.94);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    box-sizing: border-box;
+    animation: fadeInModal 0.4s ease-out;
+}
+
+.game-results-card {
+    background: #141722;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-lg);
+    padding: 24px 20px;
+    max-width: 480px;
+    width: 100%;
+    max-height: 92vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.95), 0 0 35px rgba(230, 57, 70, 0.2);
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.results-header-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    margin: 0 auto 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+}
+
+.results-header-icon.winner-mafia {
+    background: rgba(230, 57, 70, 0.2);
+    color: var(--role-mafia);
+    border: 2px solid var(--role-mafia);
+    box-shadow: 0 0 20px var(--accent-crimson-glow);
+}
+
+.results-header-icon.winner-town {
+    background: rgba(6, 214, 160, 0.2);
+    color: var(--role-doctor);
+    border: 2px solid var(--role-doctor);
+    box-shadow: 0 0 20px rgba(6, 214, 160, 0.4);
+}
+
+.results-header-icon.winner-maniac {
+    background: rgba(155, 93, 229, 0.2);
+    color: var(--role-maniac);
+    border: 2px solid var(--role-maniac);
+    box-shadow: 0 0 20px rgba(155, 93, 229, 0.4);
+}
+
+.results-header-icon.winner-none {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.results-winner-title {
+    font-family: var(--font-heading);
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    margin: 0 0 4px;
+}
+
+.results-winner-desc {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-bottom: 14px;
+}
+
+.results-outcome-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+}
+
+.results-outcome-badge.outcome-win {
+    background: rgba(255, 209, 102, 0.18);
+    color: #ffd166;
+    border: 1px solid rgba(255, 209, 102, 0.5);
+    box-shadow: 0 0 15px rgba(255, 209, 102, 0.3);
+}
+
+.results-outcome-badge.outcome-loss {
+    background: rgba(230, 57, 70, 0.15);
+    color: var(--color-danger);
+    border: 1px solid rgba(230, 57, 70, 0.35);
+}
+
+.results-stats-row {
+    display: flex;
+    justify-content: space-around;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    margin-bottom: 18px;
+    font-size: 0.82rem;
+}
+
+.results-stats-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.results-stats-val {
+    font-weight: 800;
+    font-size: 1.1rem;
+}
+
+.results-roster-box {
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+.results-roster-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.results-roster-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.results-player-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    gap: 8px;
+}
+
+.results-player-row.dead {
+    opacity: 0.6;
+}
+
+.results-player-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+}
+
+.results-player-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bg-surface-hover);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    border: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+}
+
+.results-player-name {
+    font-weight: 600;
+    font-size: 0.92rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.results-player-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.results-status-tag {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.results-status-tag.alive {
+    background: rgba(6, 214, 160, 0.15);
+    color: var(--color-success);
+}
+
+.results-status-tag.dead {
+    background: rgba(230, 57, 70, 0.15);
+    color: var(--color-danger);
+}

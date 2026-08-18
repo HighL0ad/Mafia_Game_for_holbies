@@ -521,10 +521,160 @@
     });
 
     socket.on('game_ended', function (data) {
-        showToast(t('game_ended_toast'), 'info');
-        setTimeout(() => {
-            window.location.href = "{{ url_for('home_bp.index') }}";
-        }, 1500);
+        showGameResults(data);
     });
+
+    function showGameResults(data) {
+        const overlay = document.getElementById('game-results-overlay');
+        if (!overlay) return;
+
+        const winner = data.winner;
+        const iconEl = document.getElementById('results-winner-icon');
+        const titleEl = document.getElementById('results-winner-title');
+        const descEl = document.getElementById('results-winner-desc');
+        const outcomeBadge = document.getElementById('results-outcome-badge');
+        const rosterList = document.getElementById('results-roster-list');
+        const statMafia = document.getElementById('results-stat-mafia');
+        const statTown = document.getElementById('results-stat-town');
+
+        if (data.stats) {
+            if (statMafia) statMafia.textContent = data.stats.alive_mafia ?? 0;
+            if (statTown) statTown.textContent = data.stats.alive_town ?? 0;
+        }
+
+        let myTeam = 'town';
+        if (currentRoleInfo && currentRoleInfo.is_custom) {
+            myTeam = currentRoleInfo.team || 'town';
+        } else {
+            const myRoleKey = (myRoleName || '').toLowerCase();
+            if (myRoleKey === 'mafia' || myRoleKey === 'don') myTeam = 'mafia';
+            else if (myRoleKey === 'maniac') myTeam = 'neutral';
+            else myTeam = 'town';
+        }
+
+        let isWinner = null;
+        if (winner === 'mafia') {
+            iconEl.className = 'results-header-icon winner-mafia';
+            iconEl.innerHTML = '<i class="fa-solid fa-skull"></i>';
+            titleEl.textContent = t('winner_mafia_title') || '🔴 MAFİYA QALİB GƏLDİ!';
+            descEl.textContent = t('winner_mafia_desc') || 'Mafiya şəhəri tamamilə ələ keçirdi.';
+            isWinner = (myTeam === 'mafia');
+        } else if (winner === 'town') {
+            iconEl.className = 'results-header-icon winner-town';
+            iconEl.innerHTML = '<i class="fa-solid fa-shield-halved"></i>';
+            titleEl.textContent = t('winner_town_title') || '🟢 DİNC ŞƏHƏR QALİB GƏLDİ!';
+            descEl.textContent = t('winner_town_desc') || 'Bütün cinayətkarlar ifşa edildi və aradan qaldırıldı.';
+            isWinner = (myTeam === 'town');
+        } else if (winner === 'maniac') {
+            iconEl.className = 'results-header-icon winner-maniac';
+            iconEl.innerHTML = '<i class="fa-solid fa-bolt"></i>';
+            titleEl.textContent = t('winner_maniac_title') || '🟣 MANYAQ QALİB GƏLDİ!';
+            descEl.textContent = t('winner_maniac_desc') || 'Tək qatil hər kəsi aradan qaldıraraq sağ qaldı.';
+            isWinner = (myTeam === 'neutral');
+        } else {
+            iconEl.className = 'results-header-icon winner-none';
+            iconEl.innerHTML = '<i class="fa-solid fa-flag-checkered"></i>';
+            titleEl.textContent = t('game_over_title') || 'OYUN BAŞA ÇATDI';
+            descEl.textContent = data.message || t('game_ended_toast') || 'Oyun başa çatdı.';
+            isWinner = null;
+        }
+
+        if (outcomeBadge) {
+            if (isWinner === true) {
+                outcomeBadge.style.display = 'inline-flex';
+                outcomeBadge.className = 'results-outcome-badge outcome-win';
+                outcomeBadge.innerHTML = `<i class="fa-solid fa-trophy"></i> <span>${t('your_team_won') || 'Təbriklər! Komandanız qalib gəldi! 🎉'}</span>`;
+                sounds.playVictory();
+            } else if (isWinner === false) {
+                outcomeBadge.style.display = 'inline-flex';
+                outcomeBadge.className = 'results-outcome-badge outcome-loss';
+                outcomeBadge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> <span>${t('your_team_lost') || 'Təəssüf ki, komandanız məğlub oldu.'}</span>`;
+                sounds.playEliminated();
+            } else {
+                outcomeBadge.style.display = 'none';
+            }
+        }
+
+        // Render revealed roster
+        if (rosterList && data.roster) {
+            rosterList.innerHTML = '';
+            data.roster.forEach(p => {
+                const row = document.createElement('div');
+                row.className = `results-player-row ${!p.is_alive ? 'dead' : ''}`;
+                
+                let roleTag = '';
+                if (p.role) {
+                    if (p.role_info && p.role_info.is_custom) {
+                        const color = p.role_info.color || '#3a86ff';
+                        const rawIcon = p.role_info.icon || 'fa-user-secret';
+                        const iconClass = rawIcon.startsWith('fa-') ? rawIcon : 'fa-' + rawIcon;
+                        roleTag = `<span class="player-role-tag role-tag-custom" style="background: ${color}22; color: ${color}; border: 1px solid ${color}66;"><i class="fa-solid ${iconClass}" style="font-size: 0.75rem;"></i> ${p.role}</span>`;
+                    } else {
+                        const roleKey = p.role.toLowerCase();
+                        const roleTranslated = t('role_' + roleKey) || p.role;
+                        roleTag = `<span class="player-role-tag role-tag-${roleKey}">${roleTranslated}</span>`;
+                    }
+                }
+
+                const statusTag = p.is_alive 
+                    ? `<span class="results-status-tag alive">${t('status_alive_badge') || 'Sağdır'}</span>` 
+                    : `<span class="results-status-tag dead">${t('status_dead_badge') || 'Çıxarılıb'}</span>`;
+
+                const youBadge = (p.id === playerId) ? ' <span style="color: var(--color-voting); font-size: 0.75rem; font-weight: 700;">(Siz)</span>' : '';
+
+                row.innerHTML = `
+                    <div class="results-player-left">
+                        <div class="results-player-avatar">${p.name.charAt(0).toUpperCase()}</div>
+                        <div class="results-player-name">${p.name}${youBadge}</div>
+                    </div>
+                    <div class="results-player-right">
+                        ${roleTag}
+                        ${statusTag}
+                    </div>
+                `;
+                rosterList.appendChild(row);
+            });
+        }
+
+        overlay.style.display = 'flex';
+    }
 </script>
+
+<!-- End Game Results Overlay -->
+<div id="game-results-overlay" class="game-results-overlay" style="display: none;">
+    <div class="game-results-card">
+        <div id="results-winner-icon" class="results-header-icon winner-town">
+            <i class="fa-solid fa-trophy"></i>
+        </div>
+        
+        <h3 id="results-winner-title" class="results-winner-title">OYUN BAŞA ÇATDI</h3>
+        <p id="results-winner-desc" class="results-winner-desc">Oyunun yekun nəticələri</p>
+
+        <div id="results-outcome-badge" class="results-outcome-badge outcome-win">
+            <i class="fa-solid fa-trophy"></i> <span>Təbriklər! Komandanız qalib gəldi! 🎉</span>
+        </div>
+
+        <div class="results-stats-row">
+            <div class="results-stats-item">
+                <span class="text-muted" data-i18n="stat_alive_town">Sağ qalan şəhər:</span>
+                <span id="results-stat-town" class="results-stats-val" style="color: var(--color-success);">0</span>
+            </div>
+            <div class="results-stats-item">
+                <span class="text-muted" data-i18n="stat_alive_mafia">Sağ qalan mafiya:</span>
+                <span id="results-stat-mafia" class="results-stats-val" style="color: var(--color-danger);">0</span>
+            </div>
+        </div>
+
+        <div class="results-roster-box">
+            <div class="results-roster-title">
+                <i class="fa-solid fa-masks-theater"></i> <span data-i18n="player_roster_title">Bütün Oyunçuların Rolları</span>
+            </div>
+            <div id="results-roster-list" class="results-roster-list"></div>
+        </div>
+
+        <a href="{{ url_for('home_bp.index') }}" class="btn btn-primary" style="width: 100%; box-sizing: border-box; text-decoration: none; display: flex; align-items: center; justify-content: center; height: 46px;">
+            <i class="fa-solid fa-house" style="margin-right: 8px;"></i> <span data-i18n="btn_back_home">Əsas menyuya qayıt</span>
+        </a>
+    </div>
+</div>
 {% endblock %}

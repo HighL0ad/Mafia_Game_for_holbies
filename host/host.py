@@ -239,7 +239,27 @@ def toggle_player_status(code: str, player_id: int):
 def end_game(code: str):
     room = Room.query.filter_by(host_code=code).first()
     if room:
-        socketio.emit("game_ended", {"message": "Игра завершена ведущим"}, room=code)
+        stats = calculate_game_stats(room.players)
+        roster = []
+        for p in room.players:
+            roster.append({
+                "id": p.id,
+                "name": p.name,
+                "role": p.role,
+                "role_info": p.role_info or {},
+                "is_alive": p.is_alive
+            })
+
+        socketio.emit(
+            "game_ended",
+            {
+                "winner": stats.get("winner"),
+                "stats": stats,
+                "roster": roster,
+                "message": "Игра завершена"
+            },
+            room=code
+        )
         db.session.delete(room)
         db.session.commit()
 

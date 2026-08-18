@@ -110,6 +110,17 @@ const TRANSLATIONS = {
         winner_maniac_title: "🟣 MANYAQ QALİB GƏLDİ!",
         winner_maniac_desc: "Tək qatil hər kəsi aradan qaldıraraq sağ qaldı.",
         
+        // End Game Results Screen
+        game_results_title: "Oyunun Nəticələri",
+        game_over_title: "OYUN BAŞA ÇATDI",
+        your_team_won: "Təbriklər! Komandanız qalib gəldi! 🎉",
+        your_team_lost: "Təəssüf ki, komandanız məğlub oldu.",
+        player_roster_title: "Bütün Oyunçuların Rolları",
+        btn_back_home: "Əsas menyuya qayıt",
+        stat_alive_town: "Sağ qalan şəhər:",
+        stat_alive_mafia: "Sağ qalan mafiya:",
+        stat_alive_neutral: "Sağ qalan tək qatil:",
+        
         // Custom Roles Builder
         add_custom_role_btn: "Öz rolunu yarat",
         custom_role_modal_title: "Yeni Rol Yarat",
@@ -255,6 +266,17 @@ const TRANSLATIONS = {
         winner_maniac_title: "🟣 ПОБЕДА МАНЬЯКА!",
         winner_maniac_desc: "Одинокий маньяк устранил всех и остался последним выжившим.",
         
+        // End Game Results Screen
+        game_results_title: "Итоги Игры",
+        game_over_title: "ИГРА ЗАВЕРШЕНА",
+        your_team_won: "Поздравляем! Ваша команда победила! 🎉",
+        your_team_lost: "К сожалению, ваша команда проиграла.",
+        player_roster_title: "Раскрытие всех ролей",
+        btn_back_home: "В главное меню",
+        stat_alive_town: "Выжившие мирные:",
+        stat_alive_mafia: "Выжившая мафия:",
+        stat_alive_neutral: "Выжившие маньяки:",
+        
         // Custom Roles Builder
         add_custom_role_btn: "Создать свою роль",
         custom_role_modal_title: "Конструктор роли",
@@ -399,6 +421,17 @@ const TRANSLATIONS = {
         winner_town_desc: "All criminals were investigated and eliminated.",
         winner_maniac_title: "🟣 MANIAC WON!",
         winner_maniac_desc: "The solo maniac outlasted everyone and won.",
+        
+        // End Game Results Screen
+        game_results_title: "Game Results",
+        game_over_title: "GAME OVER",
+        your_team_won: "Congratulations! Your team won! 🎉",
+        your_team_lost: "Unfortunately, your team lost.",
+        player_roster_title: "All Players & Roles Revealed",
+        btn_back_home: "Back to Home",
+        stat_alive_town: "Surviving Town:",
+        stat_alive_mafia: "Surviving Mafia:",
+        stat_alive_neutral: "Surviving Solo:",
         
         // Custom Roles Builder
         add_custom_role_btn: "Create Custom Role",
