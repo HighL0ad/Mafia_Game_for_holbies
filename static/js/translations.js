@@ -133,6 +133,10 @@ const TRANSLATIONS = {
         night_victim_broadcast: "Bu gecə şəhərdə qanlı hadisə baş verdi:",
         night_victim_elim: "mafiya tərəfindən güllələndi!",
         night_no_victims: "Bu gecə şəhərdə heç kim öldürülmədi.",
+        host_night_title: "Gecə Fəaliyyəti",
+        mafia_target_label: "Mafiyanın hədəfi:",
+        waiting_mafia_choice: "Seçim gözlənilir...",
+        mafia_chose_target_toast: "Mafiya hədəf seçdi:",
         
         // Custom Roles Builder
         add_custom_role_btn: "Öz rolunu yarat",
@@ -302,6 +306,10 @@ const TRANSLATIONS = {
         night_victim_broadcast: "Итоги ночи в городе:",
         night_victim_elim: "был застрелен мафией!",
         night_no_victims: "Этой ночью никто не погиб.",
+        host_night_title: "Ночные действия",
+        mafia_target_label: "Цель мафии:",
+        waiting_mafia_choice: "Ожидается выбор...",
+        mafia_chose_target_toast: "Мафия выбрала цель:",
         
         // Custom Roles Builder
         add_custom_role_btn: "Создать свою роль",
@@ -471,6 +479,10 @@ const TRANSLATIONS = {
         night_victim_broadcast: "Morning News:",
         night_victim_elim: "was shot by the Mafia!",
         night_no_victims: "Nobody was killed tonight.",
+        host_night_title: "Night Actions",
+        mafia_target_label: "Mafia's Target:",
+        waiting_mafia_choice: "Waiting for choice...",
+        mafia_chose_target_toast: "Mafia selected target:",
         
         // Custom Roles Builder
         add_custom_role_btn: "Create Custom Role",

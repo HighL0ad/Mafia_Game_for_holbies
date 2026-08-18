@@ -140,6 +140,25 @@
             </div>
         </div>
     </div>
+
+    <!-- Host Live Night Action Monitor Card -->
+    <div class="host-night-box" id="host-night-box" style="{{ 'display: block;' if phase == 'night' else 'display: none;' }}">
+        <div class="section-header" style="margin-bottom: 8px;">
+            <h4 style="font-size: 1rem; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-moon" style="color: var(--color-night);"></i>
+                <span data-i18n="host_night_title">Gecə Fəaliyyəti</span>
+            </h4>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(230, 57, 70, 0.08); border: 1px dashed rgba(230, 57, 70, 0.35); border-radius: var(--radius-md); padding: 12px 16px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-crosshairs" style="color: var(--role-mafia); font-size: 1.1rem;"></i>
+                <span style="font-weight: 600; color: var(--text-secondary);" data-i18n="mafia_target_label">Mafiyanın hədəfi:</span>
+            </div>
+            <strong id="host-mafia-target-display" style="font-size: 1rem; color: #ffffff; font-weight: 700;">
+                <span data-i18n="waiting_mafia_choice">Seçim gözlənilir...</span>
+            </strong>
+        </div>
+    </div>
     {% endif %}
 
     <!-- Players Section -->
@@ -386,6 +405,19 @@
                     voteBox.style.display = (newPhase === 'voting') ? 'block' : 'none';
                 }
 
+                const nightBox = document.getElementById('host-night-box');
+                if (nightBox) {
+                    nightBox.style.display = (newPhase === 'night') ? 'block' : 'none';
+                }
+
+                if (newPhase !== 'night') {
+                    document.querySelectorAll('.mafia-target-badge').forEach(el => el.remove());
+                    const display = document.getElementById('host-mafia-target-display');
+                    if (display) {
+                        display.innerHTML = `<span data-i18n="waiting_mafia_choice">${t('waiting_mafia_choice')}</span>`;
+                    }
+                }
+
                 if (data.victim_eliminated) {
                     sounds.playEliminated();
                     showToast(`${data.victim_eliminated.name} ${t('night_victim_elim')}`, 'error', 8000);
@@ -430,6 +462,39 @@
         if (votingBtn) votingBtn.className = `phase-btn ${phase === 'voting' ? 'active-voting' : ''}`;
         if (nightBtn) nightBtn.className = `phase-btn ${phase === 'night' ? 'active-night' : ''}`;
     }
+
+    // Real-time Mafia Night Target Monitoring for Host
+    socket.on('mafia_target_updated', function (data) {
+        const display = document.getElementById('host-mafia-target-display');
+        if (display) {
+            if (data.target_name) {
+                display.innerHTML = `<span style="color: var(--role-mafia); font-weight: 800;"><i class="fa-solid fa-crosshairs"></i> ${data.target_name}</span>`;
+            } else {
+                display.innerHTML = `<span data-i18n="waiting_mafia_choice">${t('waiting_mafia_choice')}</span>`;
+            }
+        }
+
+        // Remove previous target badges
+        document.querySelectorAll('.mafia-target-badge').forEach(el => el.remove());
+
+        // Add badge to targeted player card in host view
+        if (data.target_id) {
+            const card = document.getElementById(`player-card-${data.target_id}`);
+            if (card) {
+                const infoDiv = card.querySelector('.player-info > div');
+                if (infoDiv) {
+                    const badge = document.createElement('span');
+                    badge.className = 'mafia-target-badge';
+                    badge.innerHTML = '<i class="fa-solid fa-crosshairs"></i> ' + (t('mafia_target_label') || 'Hədəf');
+                    infoDiv.appendChild(badge);
+                }
+            }
+        }
+
+        if (data.target_name) {
+            showToast(`${t('mafia_chose_target_toast')} ${data.target_name}`, 'warning', 6000);
+        }
+    });
 
     // Live Voting Host Management
     function toggleCandidateChip(el) {

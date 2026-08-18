@@ -80,10 +80,18 @@ def handle_mafia_select_target(data):
     active_night_actions[room]["votes"][voter_id] = target_id
     active_night_actions[room]["mafia_target"] = target_id
 
+    target_name = None
+    if target_id:
+        with app.app_context():
+            p = db.session.get(Player, target_id)
+            if p:
+                target_name = p.name
+
     socketio.emit(
         "mafia_target_updated",
         {
             "target_id": target_id,
+            "target_name": target_name,
             "voter_id": voter_id
         },
         room=room

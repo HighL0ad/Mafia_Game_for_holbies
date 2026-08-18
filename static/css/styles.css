@@ -1068,6 +1068,38 @@ body {
     box-shadow: 0 4px 20px rgba(58, 134, 255, 0.15);
 }
 
+/* Host Night Action Monitor Card */
+.host-night-box {
+    background: var(--bg-surface-elevated);
+    border: 1px solid rgba(230, 57, 70, 0.35);
+    border-radius: var(--radius-lg);
+    padding: 20px 18px;
+    margin-bottom: 22px;
+    box-shadow: 0 4px 20px rgba(230, 57, 70, 0.15);
+    animation: fadeInModal 0.25s ease-out;
+}
+
+.mafia-target-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(230, 57, 70, 0.2);
+    border: 1px solid var(--role-mafia);
+    color: var(--role-mafia);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    animation: pulseGlow 1.8s infinite;
+}
+
+@keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 4px rgba(230, 57, 70, 0.3); }
+    50% { box-shadow: 0 0 12px rgba(230, 57, 70, 0.7); }
+}
+
 .candidate-selector-grid {
     display: flex;
     flex-wrap: wrap;
