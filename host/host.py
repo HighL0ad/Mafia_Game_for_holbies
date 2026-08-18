@@ -100,7 +100,7 @@ def create_custom_role(code: str):
         "icon": data.get("icon", "fa-mask"),
         "color": data.get("color", "#3a86ff"),
         "desc": (data.get("desc") or "").strip(),
-        "count": 1
+        "count": 0
     }
 
     current_custom = list(room.custom_roles or [])
@@ -108,7 +108,7 @@ def create_custom_role(code: str):
     room.custom_roles = current_custom
 
     cfg = dict(room.roles_config or {})
-    cfg[role_id] = 1
+    cfg[role_id] = 0
     room.roles_config = cfg
 
     db.session.commit()

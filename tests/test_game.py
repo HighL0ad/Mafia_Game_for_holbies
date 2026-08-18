@@ -116,7 +116,7 @@ def test_custom_role_create_and_delete_endpoints(client):
         r = Room.query.filter_by(host_code="ROOM123").first()
         assert len(r.custom_roles) == 1
         assert r.custom_roles[0]["name"] == "Spy"
-        assert r.roles_config.get(role_id) == 1
+        assert r.roles_config.get(role_id) == 0
 
     # Delete Custom Role
     del_res = client.post(f"/host/delete-custom-role/ROOM123/{role_id}")
