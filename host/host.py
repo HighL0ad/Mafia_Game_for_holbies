@@ -70,6 +70,9 @@ def check_and_trigger_game_end(room, stats):
     room.status = "finished"
     db.session.commit()
 
+    from app import active_night_actions
+    active_night_actions.pop(room.host_code, None)
+
     socketio.emit(
         "game_ended",
         {
@@ -104,6 +107,8 @@ def host(code: str):
 
     total_special = sum(int(v) for k, v in roles_config.items() if k != "villager")
     stats = calculate_game_stats(room.players)
+    from app import get_night_monitor_payload
+    night_monitor = get_night_monitor_payload(code)
 
     return render_template(
         "host.html",
@@ -117,7 +122,8 @@ def host(code: str):
         roles_config=roles_config,
         custom_roles=room.custom_roles or [],
         total_roles=total_special,
-        stats=stats
+        stats=stats,
+        night_monitor=night_monitor
     )
 
 
@@ -210,6 +216,9 @@ def start_game(code: str):
     room.roles_config = roles_config
     db.session.commit()
 
+    from app import active_night_actions, create_night_action_state
+    active_night_actions[code] = create_night_action_state()
+
     socketio.emit(
         "update_roles",
         {
@@ -232,24 +241,58 @@ def set_phase(code: str, phase: str):
 
     prev_phase = room.phase
     victim_eliminated = None
+    victims_eliminated = []
+    players_saved = []
+    from app import (
+        active_night_actions,
+        create_night_action_state,
+        get_night_action_state,
+        get_night_monitor_payload,
+    )
 
-    # When transitioning from Night to Day, resolve night kill
+    # Resolve all attacks simultaneously. Every Doctor protects one target;
+    # duplicate attacks still produce a single casualty.
     if phase == "day" and prev_phase == "night":
         room.day_number = (room.day_number or 1) + 1
-        from app import active_night_actions
-        night_data = active_night_actions.get(code, {})
-        target_id = night_data.get("mafia_target")
-        if target_id:
-            victim = Player.query.filter_by(id=target_id, room_code=code).first()
-            if victim and victim.is_alive:
-                victim.is_alive = False
-                victim_eliminated = {
-                    "id": victim.id,
-                    "name": victim.name,
-                    "role": victim.role
-                }
-                db.session.commit()
-            active_night_actions[code] = {"mafia_target": None, "votes": {}}
+        night_data = get_night_action_state(code)
+        protected_ids = set(night_data["doctor_targets"].values())
+        if not protected_ids and night_data.get("doctor_target"):
+            protected_ids.add(night_data["doctor_target"])
+
+        attacks = {}
+        mafia_target = night_data.get("mafia_target")
+        if mafia_target:
+            attacks.setdefault(mafia_target, set()).add("mafia")
+
+        maniac_targets = set(night_data["maniac_targets"].values())
+        if not maniac_targets and night_data.get("maniac_target"):
+            maniac_targets.add(night_data["maniac_target"])
+        for target_id in maniac_targets:
+            attacks.setdefault(target_id, set()).add("maniac")
+
+        for target_id, sources in attacks.items():
+            target = Player.query.filter_by(id=target_id, room_code=code, is_alive=True).first()
+            if not target:
+                continue
+            result = {
+                "id": target.id,
+                "name": target.name,
+                "role": target.role,
+                "sources": sorted(sources),
+            }
+            if target.id in protected_ids:
+                players_saved.append(result)
+            else:
+                target.is_alive = False
+                victims_eliminated.append(result)
+
+        previous_doctor_targets = dict(night_data["doctor_targets"])
+        active_night_actions[code] = create_night_action_state(previous_doctor_targets)
+        victim_eliminated = victims_eliminated[0] if victims_eliminated else None
+
+    elif phase == "night" and prev_phase != "night":
+        previous_targets = get_night_action_state(code).get("previous_doctor_targets", {})
+        active_night_actions[code] = create_night_action_state(previous_targets)
 
     room.phase = phase
     db.session.commit()
@@ -260,6 +303,13 @@ def set_phase(code: str, phase: str):
     duration_seconds = max(0, int((datetime.utcnow() - started).total_seconds()))
     stats["duration_seconds"] = duration_seconds
 
+    night_result = {
+        "victims": victims_eliminated,
+        "saved": players_saved,
+        "no_victims": phase == "day" and prev_phase == "night" and not victims_eliminated,
+    } if phase == "day" and prev_phase == "night" else None
+    night_monitor = get_night_monitor_payload(code) if phase == "night" else None
+
     socketio.emit(
         "phase_changed",
         {
@@ -267,6 +317,10 @@ def set_phase(code: str, phase: str):
             "day_number": room.day_number,
             "stats": stats,
             "victim_eliminated": victim_eliminated,
+            "victims_eliminated": victims_eliminated,
+            "players_saved": players_saved,
+            "night_result": night_result,
+            "night_monitor": night_monitor,
             "all_players": [p.to_dict() for p in players]
         },
         room=code
@@ -280,6 +334,10 @@ def set_phase(code: str, phase: str):
         "phase": phase, 
         "day_number": room.day_number, 
         "victim_eliminated": victim_eliminated,
+        "victims_eliminated": victims_eliminated,
+        "players_saved": players_saved,
+        "night_result": night_result,
+        "night_monitor": night_monitor,
         "stats": stats
     })
 
@@ -355,5 +413,8 @@ def end_game(code: str):
         )
         db.session.delete(room)
         db.session.commit()
+
+        from app import active_night_actions
+        active_night_actions.pop(code, None)
 
     return redirect(url_for("home_bp.index"))

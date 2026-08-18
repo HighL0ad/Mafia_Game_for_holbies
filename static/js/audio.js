@@ -310,6 +310,64 @@ class SoundEngine {
         osc.stop(now + 0.05);
     }
 
+    // Positive shield/chime used when a Doctor confirms protection or saves a player.
+    playDoctorSave() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        [523.25, 659.25, 783.99].forEach((frequency, index) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(frequency, now + index * 0.08);
+            gain.gain.setValueAtTime(0.001, now + index * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.18, now + index * 0.08 + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55 + index * 0.08);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now + index * 0.08);
+            osc.stop(now + 0.7 + index * 0.08);
+        });
+    }
+
+    // Short confidential dossier reveal: paper snap followed by a focused tone.
+    playDossier() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.14, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (this.ctx.sampleRate * 0.035));
+        }
+        const source = this.ctx.createBufferSource();
+        const filter = this.ctx.createBiquadFilter();
+        const gain = this.ctx.createGain();
+        source.buffer = buffer;
+        filter.type = 'highpass';
+        filter.frequency.value = 1200;
+        gain.gain.value = 0.18;
+        source.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        source.start(now);
+
+        const tone = this.ctx.createOscillator();
+        const toneGain = this.ctx.createGain();
+        tone.type = 'triangle';
+        tone.frequency.setValueAtTime(740, now + 0.08);
+        tone.frequency.exponentialRampToValueAtTime(1040, now + 0.3);
+        toneGain.gain.setValueAtTime(0.001, now + 0.08);
+        toneGain.gain.exponentialRampToValueAtTime(0.13, now + 0.12);
+        toneGain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+        tone.connect(toneGain);
+        toneGain.connect(this.ctx.destination);
+        tone.start(now + 0.08);
+        tone.stop(now + 0.4);
+    }
+
     // 11. Realistic Gunshot Sound with Shockwave & Echo
     playGunshot() {
         if (!this.enabled) return;

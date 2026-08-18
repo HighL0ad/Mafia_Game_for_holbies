@@ -149,14 +149,31 @@
                 <span data-i18n="host_night_title">Gecə Fəaliyyəti</span>
             </h4>
         </div>
-        <div class="host-night-target-row" style="background: rgba(230, 57, 70, 0.08); border: 1px dashed rgba(230, 57, 70, 0.35); border-radius: var(--radius-md); padding: 12px 16px;">
-            <div class="host-night-target-label">
-                <i class="fa-solid fa-crosshairs" style="color: var(--role-mafia); font-size: 1.1rem;"></i>
-                <span style="font-weight: 600; color: var(--text-secondary);" data-i18n="mafia_target_label">Mafiyanın hədəfi</span>
+        <div class="night-readiness" id="night-actions-readiness">
+            <span><i class="fa-solid fa-hourglass-half"></i> <span data-i18n="night_actions_progress">Hazır gecə rolları</span></span>
+            <strong id="night-actions-progress">0 / 0</strong>
+        </div>
+        <div class="host-night-monitor-list">
+            <div class="host-night-target-row action-mafia">
+                <div class="host-night-target-label"><i class="fa-solid fa-crosshairs"></i><span data-i18n="mafia_target_label">Mafiyanın hədəfi</span></div>
+                <strong id="host-mafia-target-display"><span data-i18n="waiting_night_choice">Seçim gözlənilir...</span></strong>
             </div>
-            <strong id="host-mafia-target-display" style="font-size: 1rem; color: #ffffff; font-weight: 700;">
-                <span data-i18n="waiting_mafia_choice">Seçim gözlənilir...</span>
-            </strong>
+            <div class="host-night-target-row action-doctor">
+                <div class="host-night-target-label"><i class="fa-solid fa-shield-heart"></i><span data-i18n="doctor_target_label">Həkimin müdafiəsi</span></div>
+                <strong id="host-doctor-target-display"><span data-i18n="waiting_night_choice">Seçim gözlənilir...</span></strong>
+            </div>
+            <div class="host-night-target-row action-sheriff">
+                <div class="host-night-target-label"><i class="fa-solid fa-magnifying-glass"></i><span data-i18n="sheriff_target_label">Şerifin yoxlaması</span></div>
+                <strong id="host-sheriff-target-display"><span data-i18n="waiting_night_choice">Seçim gözlənilir...</span></strong>
+            </div>
+            <div class="host-night-target-row action-maniac">
+                <div class="host-night-target-label"><i class="fa-solid fa-skull-crossbones"></i><span data-i18n="maniac_target_label">Manyakın hədəfi</span></div>
+                <strong id="host-maniac-target-display"><span data-i18n="waiting_night_choice">Seçim gözlənilir...</span></strong>
+            </div>
+            <div class="host-night-target-row action-don">
+                <div class="host-night-target-label"><i class="fa-solid fa-crown"></i><span data-i18n="don_check_target_label">Donun yoxlaması</span></div>
+                <strong id="host-don-check-target-display"><span data-i18n="waiting_night_choice">Seçim gözlənilir...</span></strong>
+            </div>
         </div>
     </div>
     {% endif %}
@@ -376,6 +393,49 @@
     let currentPhase = "{{ phase }}";
     let currentDayNum = {{ day_number }};
     let currentVotingWinnerId = null;
+    const initialNightMonitor = {{ night_monitor | tojson }};
+
+    function escapeMonitorText(value) {
+        const span = document.createElement('span');
+        span.textContent = value == null ? '' : String(value);
+        return span.innerHTML;
+    }
+
+    const nightMonitorIds = {
+        mafia: 'host-mafia-target-display',
+        doctor: 'host-doctor-target-display',
+        sheriff: 'host-sheriff-target-display',
+        maniac: 'host-maniac-target-display',
+        don_check: 'host-don-check-target-display'
+    };
+
+    function renderNightMonitor(payload) {
+        if (!payload) return;
+        const targets = payload.targets || {};
+        const summary = payload.summary || { actions: {}, required_total: 0, completed_total: 0, all_complete: false };
+        Object.entries(nightMonitorIds).forEach(([action, id]) => {
+            const display = document.getElementById(id);
+            if (!display) return;
+            const names = (targets[action] || []).map(item => escapeMonitorText(item.name));
+            display.innerHTML = names.length
+                ? `<span class="night-monitor-target">${names.join(', ')}</span>`
+                : `<span class="night-monitor-waiting">${escapeMonitorText(t('waiting_night_choice'))}</span>`;
+            const row = display.closest('.host-night-target-row');
+            const actionSummary = (summary.actions || {})[action] || { required: 0, completed: 0 };
+            if (row) {
+                row.classList.toggle('complete', actionSummary.required > 0 && actionSummary.completed >= actionSummary.required);
+                row.classList.toggle('inactive', actionSummary.required === 0);
+            }
+        });
+        const progress = document.getElementById('night-actions-progress');
+        const readiness = document.getElementById('night-actions-readiness');
+        if (progress) progress.textContent = `${summary.completed_total || 0} / ${summary.required_total || 0}`;
+        if (readiness) readiness.classList.toggle('all-complete', Boolean(summary.all_complete));
+    }
+
+    function resetNightMonitor() {
+        renderNightMonitor({ targets: {}, summary: { actions: {}, required_total: 0, completed_total: 0, all_complete: false } });
+    }
 
     function updateStatusPill() {
         const pill = document.getElementById('status-pill');
@@ -387,10 +447,13 @@
     window.addEventListener('languageChanged', () => {
         updateStatusPill();
         updateVillagerCount();
+        renderNightMonitor(initialNightMonitor);
     });
 
+    renderNightMonitor(initialNightMonitor);
+
     socket.on('connect', function () {
-        socket.emit('join_room', { room: roomCode });
+        socket.emit('join_room', { room: roomCode, client_type: 'host' });
     });
 
     // Phase Switching (Day / Voting / Night)
@@ -414,17 +477,20 @@
 
                 if (newPhase !== 'night') {
                     document.querySelectorAll('.mafia-target-badge').forEach(el => el.remove());
-                    const display = document.getElementById('host-mafia-target-display');
-                    if (display) {
-                        display.innerHTML = `<span data-i18n="waiting_mafia_choice">${t('waiting_mafia_choice')}</span>`;
-                    }
+                    resetNightMonitor();
+                } else {
+                    renderNightMonitor(data.night_monitor);
                 }
 
-                if (data.victim_eliminated) {
+                const victims = (data.victims_eliminated && data.victims_eliminated.length)
+                    ? data.victims_eliminated
+                    : (data.victim_eliminated ? [data.victim_eliminated] : []);
+                if (victims.length) {
                     sounds.playEliminated();
-                    showToast(`${data.victim_eliminated.name} ${t('night_victim_elim')}`, 'error', 8000);
-                    const card = document.getElementById(`player-card-${data.victim_eliminated.id}`);
-                    if (card) {
+                    showToast(`${t('night_victims_prefix')} ${victims.map(victim => victim.name).join(', ')}`, 'error', 8000);
+                    victims.forEach(victim => {
+                        const card = document.getElementById(`player-card-${victim.id}`);
+                        if (!card) return;
                         const nameEl = card.querySelector('.player-name');
                         const btn = card.querySelector('.status-toggle-btn');
                         if (nameEl) nameEl.classList.add('player-dead');
@@ -432,7 +498,14 @@
                             btn.className = 'status-toggle-btn dead';
                             btn.innerHTML = '<i class="fa-solid fa-skull"></i>';
                         }
-                    }
+                    });
+                }
+                if (data.players_saved && data.players_saved.length) {
+                    sounds.playDoctorSave();
+                    showToast(t('doctor_saved_city'), 'success', 7000);
+                }
+                if (data.night_result && data.night_result.no_victims) {
+                    showToast(t('night_no_victims'), 'info', 7000);
                 }
 
                 if (data.stats) {
@@ -513,6 +586,10 @@
                 showToast(`${t('mafia_chose_target_toast')} ${data.target_name}`, 'warning', 6000);
             }
         }
+    });
+
+    socket.on('night_action_updated', function (data) {
+        renderNightMonitor(data);
     });
 
     socket.on('game_ended', function (data) {

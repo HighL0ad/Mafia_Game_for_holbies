@@ -117,10 +117,48 @@
         <div id="mafia-candidate-list" class="mafia-candidate-list"></div>
     </div>
 
+    <div id="doctor-night-section" class="night-action-section night-action-doctor" style="display: none;">
+        <div class="night-action-header">
+            <i class="fa-solid fa-kit-medical"></i> <span data-i18n="doctor_night_title">Həkim müdafiəsi</span>
+        </div>
+        <p data-i18n="doctor_night_subtitle">Bu gecə qorumaq istədiyiniz oyunçunu seçin.</p>
+        <div id="doctor-candidate-list" class="night-action-list"></div>
+    </div>
+
+    <div id="sheriff-night-section" class="night-action-section night-action-sheriff" style="display: none;">
+        <div class="night-action-header">
+            <i class="fa-solid fa-magnifying-glass"></i> <span data-i18n="sheriff_night_title">Şerif araşdırması</span>
+        </div>
+        <p data-i18n="sheriff_night_subtitle">Dosyesini yoxlamaq istədiyiniz oyunçunu seçin.</p>
+        <div id="sheriff-candidate-list" class="night-action-list"></div>
+        <div id="sheriff-investigation-result" class="night-investigation-result" hidden></div>
+    </div>
+
+    <div id="maniac-night-section" class="night-action-section night-action-maniac" style="display: none;">
+        <div class="night-action-header">
+            <i class="fa-solid fa-skull-crossbones"></i> <span data-i18n="maniac_night_title">Manyakın ovu</span>
+        </div>
+        <p data-i18n="maniac_night_subtitle">Bu gecə aradan qaldırmaq istədiyiniz oyunçunu seçin.</p>
+        <div id="maniac-candidate-list" class="night-action-list"></div>
+    </div>
+
+    <div id="don-check-night-section" class="night-action-section night-action-don" style="display: none;">
+        <div class="night-action-header">
+            <i class="fa-solid fa-crown"></i> <span data-i18n="don_check_title">Donun Şerif axtarışı</span>
+        </div>
+        <p data-i18n="don_check_subtitle">Şerif olduğunu düşündüyünüz oyunçunu yoxlayın.</p>
+        <div id="don-check-candidate-list" class="night-action-list"></div>
+        <div id="don-investigation-result" class="night-investigation-result" hidden></div>
+    </div>
+
     <button type="button" class="btn btn-secondary mt-4" style="max-width: 220px;" onclick="closePhaseOverlay()">
         <i class="fa-solid fa-eye"></i> <span data-i18n="peek_role">Rola baxmaq</span>
     </button>
 </div>
+
+<button type="button" id="night-action-reopen" class="night-action-reopen" style="display: none;" onclick="openPhaseOverlay()">
+    <i class="fa-solid fa-moon"></i> <span data-i18n="night_open_actions">Gecə hərəkətləri</span>
+</button>
 
 <!-- Hybrid WebGL gunshot / shattered screen effect shown only to the night victim. -->
 <div id="bullet-glass-shatter-overlay" class="bullet-glass-shatter-overlay" aria-hidden="true" hidden>
@@ -173,6 +211,8 @@
     const playerName = "{{ player.name }}";
     const playerId = {{ player.id }};
     const roomCode = "{{ player.room_code }}";
+    const initialGamePhase = {{ initial_phase | tojson }};
+    let currentGamePhase = initialGamePhase;
     let isPlayerAlive = {{ 'true' if player.is_alive else 'false' }};
     let currentRoleKey = "{{ player.role.lower() if player.role else '' }}";
     let myCurrentVote = null;
@@ -310,11 +350,24 @@
         const overlay = document.getElementById('player-phase-overlay');
         overlay.classList.remove('show');
         overlay.style.display = 'none';
+        const reopen = document.getElementById('night-action-reopen');
+        if (reopen && currentGamePhase === 'night' && isPlayerAlive) reopen.style.display = 'flex';
+    }
+
+    function openPhaseOverlay() {
+        const overlay = document.getElementById('player-phase-overlay');
+        const reopen = document.getElementById('night-action-reopen');
+        if (overlay && currentGamePhase === 'night') {
+            showNightRoleSections(latestPlayersList);
+            overlay.style.display = 'flex';
+            overlay.classList.add('show');
+        }
+        if (reopen) reopen.style.display = 'none';
     }
 
     function ensureJoinedRoom() {
         if (roomCode) {
-            socket.emit('join_room', { room: roomCode });
+            socket.emit('join_room', { room: roomCode, player_id: playerId });
         }
     }
     socket.on('connect', ensureJoinedRoom);
@@ -449,13 +502,160 @@
     });
 
     // Listen to Phase Changes (Day / Voting / Night)
-    let latestPlayersList = [];
+    let latestPlayersList = {{ night_players | tojson }};
     let selectedMafiaTargetId = null;
+    let doctorSelfHealBlocked = false;
+    const selectedNightTargets = {
+        doctor: null,
+        sheriff: null,
+        maniac: null,
+        don_check: null
+    };
+
+    const nightActionConfig = {
+        doctor: { event: 'doctor_select_target', listId: 'doctor-candidate-list', icon: 'fa-kit-medical' },
+        sheriff: { event: 'sheriff_check_target', listId: 'sheriff-candidate-list', icon: 'fa-magnifying-glass' },
+        maniac: { event: 'maniac_select_target', listId: 'maniac-candidate-list', icon: 'fa-skull-crossbones' },
+        don_check: { event: 'don_check_sheriff', listId: 'don-check-candidate-list', icon: 'fa-user-secret' }
+    };
+
+    function escapeNightText(value) {
+        const span = document.createElement('span');
+        span.textContent = value == null ? '' : String(value);
+        return span.innerHTML;
+    }
 
     function isMafiaMember() {
         if (currentRoleInfo && currentRoleInfo.team === 'mafia') return true;
         const r = (currentRoleKey || '').toLowerCase();
         return r === 'mafia' || r === 'don';
+    }
+
+    function renderInvestigationResult(action, result) {
+        const isSheriffCheck = action === 'sheriff';
+        const box = document.getElementById(isSheriffCheck ? 'sheriff-investigation-result' : 'don-investigation-result');
+        if (!box || !result) return;
+        const found = isSheriffCheck ? result.is_mafia : result.is_sheriff;
+        const statusKey = isSheriffCheck
+            ? (found ? 'sheriff_result_mafia' : 'sheriff_result_civilian')
+            : (found ? 'don_result_sheriff' : 'don_result_not_sheriff');
+        box.className = `night-investigation-result ${found ? 'danger' : 'safe'}`;
+        box.innerHTML = `<i class="fa-solid ${found ? 'fa-triangle-exclamation' : 'fa-shield-check'}"></i><span><strong>${escapeNightText(result.target_name)}</strong> — ${escapeNightText(t(statusKey))}</span>`;
+        box.hidden = false;
+    }
+
+    function renderNightActionList(action, players) {
+        const config = nightActionConfig[action];
+        const list = document.getElementById(config.listId);
+        if (!list) return;
+        list.innerHTML = '';
+        const candidatePool = (players && players.length) ? players : latestPlayersList;
+        const investigationLocked = (action === 'sheriff' || action === 'don_check') && selectedNightTargets[action] !== null;
+        const validTargets = candidatePool.filter(p => p.is_alive && (action === 'doctor' || p.id !== playerId));
+
+        if (!validTargets.length) {
+            list.innerHTML = `<span class="night-action-empty">${escapeNightText(t('night_no_targets'))}</span>`;
+            return;
+        }
+
+        validTargets.forEach(candidate => {
+            const isSelfBlocked = action === 'doctor' && candidate.id === playerId && doctorSelfHealBlocked;
+            const isSelected = selectedNightTargets[action] === candidate.id;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `night-action-target-btn ${isSelected ? 'selected' : ''}`;
+            button.dataset.id = candidate.id;
+            button.disabled = isSelfBlocked || (investigationLocked && !isSelected);
+            button.innerHTML = `
+                <span class="night-action-target-name"><i class="fa-solid ${config.icon}"></i>${escapeNightText(candidate.name)}${candidate.id === playerId ? ` <small>(${escapeNightText(t('you_label'))})</small>` : ''}</span>
+                <i class="fa-${isSelected ? 'solid' : 'regular'} fa-circle${isSelected ? '-check' : ''}"></i>
+            `;
+            if (isSelfBlocked) button.title = t('doctor_self_consecutive_error');
+            button.onclick = () => submitNightAction(action, candidate.id);
+            list.appendChild(button);
+        });
+    }
+
+    function submitNightAction(action, targetId) {
+        sounds.playClick();
+        socket.emit(nightActionConfig[action].event, {
+            room: roomCode,
+            player_id: playerId,
+            target_id: targetId
+        }, response => {
+            if (!response || !response.success) {
+                showToast(t(response && response.error_key ? response.error_key : 'invalid_night_action'), 'error', 6000);
+                return;
+            }
+            selectedNightTargets[action] = response.target_id;
+            renderNightActionList(action, latestPlayersList);
+            if (action === 'doctor') {
+                sounds.playDoctorSave();
+                showToast(t('doctor_target_selected'), 'success');
+            } else if (action === 'maniac') {
+                showToast(t('maniac_target_selected'), 'warning');
+            } else {
+                sounds.playDossier();
+                renderInvestigationResult(action, response);
+                showToast(t('investigation_complete'), 'info');
+            }
+        });
+    }
+
+    function requestNightActionState(action) {
+        socket.emit('get_night_action_state', { room: roomCode, player_id: playerId }, response => {
+            if (!response || !response.success) return;
+            doctorSelfHealBlocked = Boolean(response.doctor_self_blocked);
+            if (response.mafia_target_id) {
+                selectedMafiaTargetId = response.mafia_target_id;
+                renderMafiaNightTargetList(latestPlayersList);
+            }
+            if (action) {
+                selectedNightTargets[action] = response.selected_target_id || null;
+                renderNightActionList(action, latestPlayersList);
+                if (response.result) renderInvestigationResult(action, response.result);
+            }
+        });
+    }
+
+    function hideNightActionSections() {
+        ['mafia-night-section', 'doctor-night-section', 'sheriff-night-section', 'maniac-night-section', 'don-check-night-section']
+            .forEach(id => {
+                const section = document.getElementById(id);
+                if (section) section.style.display = 'none';
+            });
+    }
+
+    function showNightRoleSections(players) {
+        hideNightActionSections();
+        if (!isPlayerAlive) return;
+        if (isMafiaMember()) {
+            renderMafiaNightTargetList(players);
+            document.getElementById('mafia-night-section').style.display = 'block';
+        }
+        const roleActions = { doctor: 'doctor', sheriff: 'sheriff', maniac: 'maniac', don: 'don_check' };
+        const action = roleActions[(currentRoleKey || '').toLowerCase()];
+        if (!action) {
+            if (isMafiaMember()) requestNightActionState(null);
+            return;
+        }
+        const sectionId = action === 'don_check' ? 'don-check-night-section' : `${action}-night-section`;
+        document.getElementById(sectionId).style.display = 'block';
+        renderNightActionList(action, players);
+        requestNightActionState(action);
+    }
+
+    function resetNightActionUI() {
+        selectedMafiaTargetId = null;
+        doctorSelfHealBlocked = false;
+        Object.keys(selectedNightTargets).forEach(action => { selectedNightTargets[action] = null; });
+        ['sheriff-investigation-result', 'don-investigation-result'].forEach(id => {
+            const result = document.getElementById(id);
+            if (result) {
+                result.hidden = true;
+                result.innerHTML = '';
+            }
+        });
     }
 
     function renderMafiaNightTargetList(players) {
@@ -526,6 +726,12 @@
             room: roomCode,
             voter_id: playerId,
             target_id: targetId
+        }, response => {
+            if (!response || !response.success) {
+                selectedMafiaTargetId = null;
+                renderMafiaNightTargetList(latestPlayersList);
+                showToast(t(response && response.error_key ? response.error_key : 'invalid_night_action'), 'error', 6000);
+            }
         });
 
         showToast(t('mafia_target_selected'), 'info');
@@ -556,7 +762,9 @@
         const icon = document.getElementById('phase-overlay-icon');
         const title = document.getElementById('phase-overlay-title');
         const desc = document.getElementById('phase-overlay-desc');
-        const mafiaSection = document.getElementById('mafia-night-section');
+        currentGamePhase = data.phase;
+        const reopen = document.getElementById('night-action-reopen');
+        if (reopen && data.phase !== 'night') reopen.style.display = 'none';
 
         if (data.all_players) {
             latestPlayersList = data.all_players;
@@ -568,8 +776,12 @@
         }
 
         // Night victim resolution & Gunshot sound & Broken Glass FX
-        if (data.victim_eliminated) {
-            if (data.victim_eliminated.id === playerId) {
+        const victims = (data.victims_eliminated && data.victims_eliminated.length)
+            ? data.victims_eliminated
+            : (data.victim_eliminated ? [data.victim_eliminated] : []);
+        const myNightDeath = victims.find(victim => victim.id === playerId);
+        if (victims.length) {
+            if (myNightDeath) {
                 isPlayerAlive = false;
                 sounds.playGunshot();
                 triggerGunshotAndShatter();
@@ -582,7 +794,7 @@
                 showToast(t('you_were_shot_title'), 'error', 10000);
                 sendPushNotification(t('you_were_shot_title'), t('you_were_shot_desc'));
             } else {
-                showToast(`${data.victim_eliminated.name} ${t('night_victim_elim')}`, 'error', 7000);
+                showToast(`${t('night_victims_prefix')} ${victims.map(victim => victim.name).join(', ')}`, 'error', 8000);
             }
 
             if (!isPlayerAlive && data.all_players) {
@@ -590,13 +802,17 @@
             }
         }
 
+        if (data.players_saved && data.players_saved.length) {
+            sounds.playDoctorSave();
+            showToast(t('doctor_saved_city'), 'success', 7000);
+        }
+        if (data.night_result && data.night_result.no_victims) {
+            showToast(t('night_no_victims'), 'info', 7000);
+        }
+
         if (data.phase === 'night') {
-            if (isPlayerAlive && isMafiaMember()) {
-                renderMafiaNightTargetList(data.all_players || latestPlayersList);
-                if (mafiaSection) mafiaSection.style.display = 'block';
-            } else {
-                if (mafiaSection) mafiaSection.style.display = 'none';
-            }
+            resetNightActionUI();
+            showNightRoleSections(data.all_players || latestPlayersList);
 
             icon.innerHTML = '<i class="fa-solid fa-moon"></i>';
             title.textContent = t('night_overlay_title');
@@ -607,7 +823,7 @@
             sendPushNotification(t('night_overlay_title'), t('night_overlay_subtitle'));
             if (navigator.vibrate) navigator.vibrate([150, 100, 150]);
         } else if (data.phase === 'day') {
-            if (mafiaSection) mafiaSection.style.display = 'none';
+            hideNightActionSections();
             overlay.classList.remove('show');
             overlay.style.display = 'none';
             sounds.playDay();
@@ -615,7 +831,7 @@
             sendPushNotification(`${t('phase_day_short')} #${data.day_number}!`, t('phase_day'));
             if (navigator.vibrate) navigator.vibrate(100);
         } else if (data.phase === 'voting') {
-            if (mafiaSection) mafiaSection.style.display = 'none';
+            hideNightActionSections();
             overlay.classList.remove('show');
             overlay.style.display = 'none';
             sounds.playVoting();
@@ -632,6 +848,16 @@
             });
         }
     });
+
+    if (initialGamePhase === 'night') {
+        const overlay = document.getElementById('player-phase-overlay');
+        resetNightActionUI();
+        showNightRoleSections(latestPlayersList);
+        if (overlay) {
+            overlay.style.display = 'flex';
+            overlay.classList.add('show');
+        }
+    }
 
     socket.on('update_roles', function (data) {
         if (data.players) {

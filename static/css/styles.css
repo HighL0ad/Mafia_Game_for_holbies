@@ -1123,6 +1123,23 @@ body:has(.game-results-overlay[style*="display: flex"]) .top-nav-bar {
     display: flex;
 }
 
+.night-action-reopen {
+    position: fixed;
+    right: max(14px, env(safe-area-inset-right));
+    bottom: max(18px, env(safe-area-inset-bottom));
+    z-index: 1150;
+    align-items: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 11px 15px;
+    border: 1px solid rgba(155, 93, 229, 0.55);
+    border-radius: 999px;
+    background: rgba(20, 15, 35, 0.94);
+    box-shadow: 0 8px 28px rgba(155, 93, 229, 0.35);
+    color: #ffffff;
+    font-weight: 700;
+}
+
 .phase-overlay-icon {
     width: 96px;
     height: 96px;
@@ -1198,6 +1215,12 @@ body:has(.game-results-overlay[style*="display: flex"]) .top-nav-bar {
     justify-content: space-between;
     gap: 10px;
     flex-wrap: wrap;
+    padding: 11px 13px;
+    border: 1px dashed color-mix(in srgb, currentColor 38%, transparent);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, currentColor 7%, transparent);
+    color: var(--text-secondary);
+    transition: var(--transition);
 }
 
 .host-night-target-label {
@@ -1207,10 +1230,63 @@ body:has(.game-results-overlay[style*="display: flex"]) .top-nav-bar {
     min-width: 0;
 }
 
-#host-mafia-target-display {
+.host-night-target-row strong {
     min-width: 0;
     overflow-wrap: anywhere;
     text-align: right;
+}
+
+.host-night-monitor-list {
+    display: grid;
+    gap: 8px;
+}
+
+.host-night-target-row.action-mafia { color: var(--role-mafia); }
+.host-night-target-row.action-doctor { color: var(--role-doctor); }
+.host-night-target-row.action-sheriff { color: var(--role-sheriff); }
+.host-night-target-row.action-maniac { color: #bb86fc; }
+.host-night-target-row.action-don { color: var(--role-don); }
+
+.host-night-target-row .host-night-target-label span,
+.host-night-target-row strong {
+    color: var(--text-primary);
+}
+
+.host-night-target-row.inactive {
+    opacity: 0.42;
+}
+
+.host-night-target-row.complete {
+    border-style: solid;
+    box-shadow: inset 3px 0 0 currentColor;
+}
+
+.night-monitor-waiting {
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.night-monitor-target {
+    color: inherit;
+    font-weight: 800;
+}
+
+.night-readiness {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary);
+    font-size: 0.84rem;
+}
+
+.night-readiness.all-complete {
+    background: rgba(6, 214, 160, 0.12);
+    color: var(--color-success);
 }
 
 .player-item.is-mafia-targeted {
@@ -2169,6 +2245,111 @@ body:has(.game-results-overlay[style*="display: flex"]) .top-nav-bar {
     box-shadow: 0 0 25px rgba(230, 57, 70, 0.15);
 }
 
+.night-action-section {
+    --night-action-color: var(--accent-blue);
+    width: 100%;
+    max-width: 380px;
+    box-sizing: border-box;
+    margin-top: 18px;
+    padding: 14px 16px;
+    text-align: left;
+    color: var(--night-action-color);
+    background: color-mix(in srgb, var(--night-action-color) 9%, transparent);
+    border: 1px solid color-mix(in srgb, var(--night-action-color) 38%, transparent);
+    border-radius: var(--radius-md);
+    box-shadow: 0 0 25px color-mix(in srgb, var(--night-action-color) 15%, transparent);
+}
+
+.night-action-doctor { --night-action-color: var(--role-doctor); }
+.night-action-sheriff { --night-action-color: var(--role-sheriff); }
+.night-action-maniac { --night-action-color: #bb86fc; }
+.night-action-don { --night-action-color: var(--role-don); }
+
+.night-action-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+    color: var(--night-action-color);
+    font-size: 0.95rem;
+    font-weight: 800;
+}
+
+.night-action-section > p {
+    margin: 0 0 10px;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+}
+
+.night-action-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 8px;
+    max-height: min(210px, 31vh);
+    overflow-y: auto;
+}
+
+.night-action-target-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 46px;
+    padding: 8px 11px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 0.84rem;
+    transition: var(--transition);
+}
+
+.night-action-target-btn:hover:not(:disabled),
+.night-action-target-btn.selected {
+    border-color: var(--night-action-color);
+    background: color-mix(in srgb, var(--night-action-color) 25%, transparent);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--night-action-color) 35%, transparent);
+}
+
+.night-action-target-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.night-action-target-name {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.night-action-target-name > i { color: var(--night-action-color); }
+
+.night-investigation-result {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 11px 12px;
+    border-radius: var(--radius-sm);
+    background: rgba(6, 214, 160, 0.12);
+    border: 1px solid rgba(6, 214, 160, 0.35);
+    color: var(--color-success);
+}
+
+.night-investigation-result.danger {
+    background: rgba(230, 57, 70, 0.14);
+    border-color: rgba(230, 57, 70, 0.42);
+    color: var(--color-danger);
+}
+
+.night-investigation-result[hidden] { display: none; }
+.night-action-empty { color: var(--text-muted); font-size: 0.8rem; }
+
 .mafia-night-header {
     display: flex;
     align-items: center;
@@ -2238,13 +2419,15 @@ body:has(.game-results-overlay[style*="display: flex"]) .top-nav-bar {
         line-height: 1.4;
     }
 
-    .mafia-night-section {
+    .mafia-night-section,
+    .night-action-section {
         margin-top: 10px;
         padding: 10px 12px;
         flex-shrink: 0;
     }
 
-    .mafia-candidate-list {
+    .mafia-candidate-list,
+    .night-action-list {
         max-height: 124px;
     }
 

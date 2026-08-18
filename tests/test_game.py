@@ -1,5 +1,5 @@
 import pytest
-from app import app
+from app import active_night_actions, app
 from database import db
 from models import Player, Room, get_default_roles_config
 from host.host import calculate_game_stats
@@ -12,7 +12,9 @@ def client():
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
     with app.app_context():
         db.create_all()
+        active_night_actions.clear()
         yield app.test_client()
+        active_night_actions.clear()
         db.session.remove()
         db.drop_all()
 
@@ -184,7 +186,7 @@ def test_full_game_lifecycle_start_phase_toggle_end(client):
 def test_mafia_night_target_and_auto_win_condition(client):
     from app import handle_mafia_select_target, active_night_actions
     with app.app_context():
-        room = Room(host_code="WIN123", status="started")
+        room = Room(host_code="WIN123", status="started", phase="night")
         m1 = Player(room_code="WIN123", name="Mafia Boss", role="Mafia", role_info={"team": "mafia"}, is_alive=True)
         v1 = Player(room_code="WIN123", name="Villager 1", role="Villager", role_info={"team": "town"}, is_alive=True)
         v2 = Player(room_code="WIN123", name="Villager 2", role="Villager", role_info={"team": "town"}, is_alive=True)
@@ -221,7 +223,7 @@ def test_mafia_night_target_and_auto_win_condition(client):
 def test_don_priority_override_over_mafia(client):
     from app import handle_mafia_select_target, active_night_actions
     with app.app_context():
-        room = Room(host_code="DON999", status="started")
+        room = Room(host_code="DON999", status="started", phase="night")
         don = Player(room_code="DON999", name="The Don", role="Don", role_info={"team": "mafia"}, is_alive=True)
         mafia = Player(room_code="DON999", name="Regular Mafia", role="Mafia", role_info={"team": "mafia"}, is_alive=True)
         v1 = Player(room_code="DON999", name="Target 1", role="Villager", role_info={"team": "town"}, is_alive=True)
@@ -255,3 +257,78 @@ def test_don_priority_override_over_mafia(client):
         "target_id": v1_id
     })
     assert active_night_actions["DON999"]["mafia_target"] == v2_id
+
+
+def test_all_night_roles_and_doctor_resolution(client):
+    from app import (
+        get_night_action_summary,
+        handle_doctor_select_target,
+        handle_don_check_sheriff,
+        handle_mafia_select_target,
+        handle_maniac_select_target,
+        handle_sheriff_check_target,
+    )
+    with app.app_context():
+        room = Room(host_code="NIGHT1", status="started", phase="night", day_number=1)
+        players = [
+            Player(room_code="NIGHT1", name="Don", role="Don", role_info={"team": "mafia"}),
+            Player(room_code="NIGHT1", name="Doctor", role="Doctor", role_info={"team": "town"}),
+            Player(room_code="NIGHT1", name="Sheriff", role="Sheriff", role_info={"team": "town"}),
+            Player(room_code="NIGHT1", name="Maniac", role="Maniac", role_info={"team": "neutral"}),
+            Player(room_code="NIGHT1", name="Saved", role="Villager", role_info={"team": "town"}),
+            Player(room_code="NIGHT1", name="Victim", role="Villager", role_info={"team": "town"}),
+            Player(room_code="NIGHT1", name="Witness", role="Villager", role_info={"team": "town"}),
+        ]
+        room.players = players
+        db.session.add(room)
+        db.session.commit()
+        don, doctor, sheriff, maniac, saved, victim, _ = players
+
+        assert handle_mafia_select_target({"room": "NIGHT1", "player_id": don.id, "target_id": saved.id})["success"]
+        assert handle_doctor_select_target({"room": "NIGHT1", "player_id": doctor.id, "target_id": saved.id})["success"]
+        sheriff_result = handle_sheriff_check_target({"room": "NIGHT1", "player_id": sheriff.id, "target_id": don.id})
+        assert sheriff_result["is_mafia"] is True
+        assert handle_maniac_select_target({"room": "NIGHT1", "player_id": maniac.id, "target_id": victim.id})["success"]
+        don_result = handle_don_check_sheriff({"room": "NIGHT1", "player_id": don.id, "target_id": sheriff.id})
+        assert don_result["is_sheriff"] is True
+        summary = get_night_action_summary("NIGHT1")
+        assert summary["all_complete"] is True
+        assert summary["completed_total"] == summary["required_total"] == 5
+        saved_id, victim_id, sheriff_id = saved.id, victim.id, sheriff.id
+
+    host_page = client.get("/host/NIGHT1")
+    player_page = client.get(f"/player/{sheriff_id}")
+    assert host_page.status_code == 200
+    assert b"host-doctor-target-display" in host_page.data
+    assert player_page.status_code == 200
+    assert b"sheriff-investigation-result" in player_page.data
+
+    response = client.post("/host/set-phase/NIGHT1/day")
+    result = response.get_json()
+    assert [p["id"] for p in result["players_saved"]] == [saved_id]
+    assert [p["id"] for p in result["victims_eliminated"]] == [victim_id]
+    with app.app_context():
+        assert db.session.get(Player, saved_id).is_alive is True
+        assert db.session.get(Player, victim_id).is_alive is False
+
+
+def test_doctor_cannot_self_protect_two_nights_in_a_row(client):
+    from app import handle_doctor_select_target
+    with app.app_context():
+        room = Room(host_code="DOC2", status="started", phase="night", day_number=1)
+        doctor = Player(room_code="DOC2", name="Doctor", role="Doctor", role_info={"team": "town"})
+        mafia = Player(room_code="DOC2", name="Mafia", role="Mafia", role_info={"team": "mafia"})
+        villager = Player(room_code="DOC2", name="Villager", role="Villager", role_info={"team": "town"})
+        room.players = [doctor, mafia, villager]
+        db.session.add(room)
+        db.session.commit()
+        doctor_id = doctor.id
+        first = handle_doctor_select_target({"room": "DOC2", "player_id": doctor_id, "target_id": doctor_id})
+        assert first["success"] is True
+
+    assert client.post("/host/set-phase/DOC2/day").status_code == 200
+    assert client.post("/host/set-phase/DOC2/night").status_code == 200
+    with app.app_context():
+        blocked = handle_doctor_select_target({"room": "DOC2", "player_id": doctor_id, "target_id": doctor_id})
+        assert blocked["success"] is False
+        assert blocked["error_key"] == "doctor_self_consecutive_error"
