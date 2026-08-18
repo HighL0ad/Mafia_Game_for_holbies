@@ -12,6 +12,7 @@ from config import Config
 from database import db
 from home.home import home_bp
 from host.host import host_bp
+from models import Player, Room
 from player.player import player_bp
 from websock import socketio
 
@@ -74,6 +75,13 @@ def handle_mafia_select_target(data):
     target_id = data.get("target_id")
     if not room:
         return
+
+    if target_id is not None:
+        try:
+            target_id = int(target_id)
+        except (ValueError, TypeError):
+            pass
+
     if room not in active_night_actions:
         active_night_actions[room] = {"mafia_target": None, "votes": {}}
 
@@ -82,10 +90,9 @@ def handle_mafia_select_target(data):
 
     target_name = None
     if target_id:
-        with app.app_context():
-            p = db.session.get(Player, target_id)
-            if p:
-                target_name = p.name
+        p = db.session.get(Player, target_id)
+        if p:
+            target_name = p.name
 
     socketio.emit(
         "mafia_target_updated",

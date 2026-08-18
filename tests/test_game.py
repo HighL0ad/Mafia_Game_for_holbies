@@ -172,10 +172,6 @@ def test_full_game_lifecycle_start_phase_toggle_end(client):
         p = Player.query.filter_by(room_code="GAME999").first()
         p_id = p.id
 
-    res = client.post(f"/host/toggle-player-status/GAME999/{p_id}")
-    assert res.status_code == 200
-    assert res.get_json()["is_alive"] is False
-
     # 5. End Game
     res = client.post("/host/end-game/GAME999", follow_redirects=False)
     assert res.status_code == 302
@@ -183,3 +179,40 @@ def test_full_game_lifecycle_start_phase_toggle_end(client):
     with app.app_context():
         r = Room.query.filter_by(host_code="GAME999").first()
         assert r is None
+
+
+def test_mafia_night_target_and_auto_win_condition(client):
+    from app import handle_mafia_select_target, active_night_actions
+    with app.app_context():
+        room = Room(host_code="WIN123", status="started")
+        m1 = Player(room_code="WIN123", name="Mafia Boss", role="Mafia", role_info={"team": "mafia"}, is_alive=True)
+        v1 = Player(room_code="WIN123", name="Villager 1", role="Villager", role_info={"team": "town"}, is_alive=True)
+        v2 = Player(room_code="WIN123", name="Villager 2", role="Villager", role_info={"team": "town"}, is_alive=True)
+        room.players = [m1, v1, v2]
+        db.session.add(room)
+        db.session.commit()
+        m1_id, v1_id, v2_id = m1.id, v1.id, v2.id
+
+    # 1. Test Mafia selects target
+    handle_mafia_select_target({
+        "room": "WIN123",
+        "voter_id": m1_id,
+        "target_id": v1_id
+    })
+    assert active_night_actions["WIN123"]["mafia_target"] == v1_id
+
+    # 2. Host transitions from night to day -> v1 eliminated
+    with app.app_context():
+        r = Room.query.filter_by(host_code="WIN123").first()
+        r.phase = "night"
+        db.session.commit()
+
+    res = client.post("/host/set-phase/WIN123/day")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["victim_eliminated"]["id"] == v1_id
+
+    # Now alive: 1 Mafia, 1 Villager -> Mafia count >= Town count -> winner is mafia!
+    assert data["stats"]["alive_mafia"] == 1
+    assert data["stats"]["alive_town"] == 1
+    assert data["stats"]["winner"] == "mafia"

@@ -250,7 +250,8 @@ def set_phase(code: str, phase: str):
     room.phase = phase
     db.session.commit()
 
-    stats = calculate_game_stats(room.players)
+    players = Player.query.filter_by(room_code=code).all()
+    stats = calculate_game_stats(players)
     started = room.started_at or room.created_at or datetime.utcnow()
     duration_seconds = max(0, int((datetime.utcnow() - started).total_seconds()))
     stats["duration_seconds"] = duration_seconds
@@ -262,7 +263,7 @@ def set_phase(code: str, phase: str):
             "day_number": room.day_number,
             "stats": stats,
             "victim_eliminated": victim_eliminated,
-            "all_players": [p.to_dict() for p in room.players]
+            "all_players": [p.to_dict() for p in players]
         },
         room=code
     )
@@ -287,7 +288,8 @@ def toggle_player_status(code: str, player_id: int):
     player.is_alive = not player.is_alive
     db.session.commit()
 
-    stats = calculate_game_stats(room.players)
+    players = Player.query.filter_by(room_code=code).all()
+    stats = calculate_game_stats(players)
     started = room.started_at or room.created_at or datetime.utcnow()
     duration_seconds = max(0, int((datetime.utcnow() - started).total_seconds()))
     stats["duration_seconds"] = duration_seconds
@@ -299,7 +301,7 @@ def toggle_player_status(code: str, player_id: int):
             "player_name": player.name,
             "is_alive": player.is_alive,
             "stats": stats,
-            "all_players": [p.to_dict() for p in room.players]
+            "all_players": [p.to_dict() for p in players]
         },
         room=code
     )
@@ -307,7 +309,7 @@ def toggle_player_status(code: str, player_id: int):
     if stats.get("winner"):
         check_and_trigger_game_end(room, stats)
 
-    return jsonify({"success": True, "player_id": player.id, "is_alive": player.is_alive, "stats": stats, "all_players": [p.to_dict() for p in room.players]})
+    return jsonify({"success": True, "player_id": player.id, "is_alive": player.is_alive, "stats": stats, "all_players": [p.to_dict() for p in players]})
 
 
 @host_bp.post("/end-game/<code>")
