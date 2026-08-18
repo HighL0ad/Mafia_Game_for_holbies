@@ -107,8 +107,9 @@ def check_and_trigger_game_end(room, stats):
     room.status = "finished"
     db.session.commit()
 
-    from app import active_night_actions
+    from app import active_night_actions, active_voting_sessions
     active_night_actions.pop(room.host_code, None)
+    active_voting_sessions.pop(room.host_code, None)
 
     socketio.emit(
         "game_ended",
@@ -253,8 +254,9 @@ def start_game(code: str):
     room.roles_config = roles_config
     db.session.commit()
 
-    from app import active_night_actions, create_night_action_state
+    from app import active_night_actions, active_voting_sessions, create_night_action_state
     active_night_actions[code] = create_night_action_state()
+    active_voting_sessions.pop(code, None)
 
     public_players = serialize_public_players(room.players)
     socketio.emit(
@@ -294,10 +296,15 @@ def set_phase(code: str, phase: str):
     players_saved = []
     from app import (
         active_night_actions,
+        active_voting_sessions,
         create_night_action_state,
         get_night_action_state,
         get_night_monitor_payload,
     )
+
+    if prev_phase == "voting" and phase != "voting":
+        active_voting_sessions.pop(code, None)
+        socketio.emit("voting_cancelled", {"phase": phase}, room=code)
 
     # Resolve all attacks simultaneously. Every Doctor protects one target;
     # duplicate attacks still produce a single casualty.
@@ -473,7 +480,8 @@ def end_game(code: str):
         db.session.delete(room)
         db.session.commit()
 
-        from app import active_night_actions
+        from app import active_night_actions, active_voting_sessions
         active_night_actions.pop(code, None)
+        active_voting_sessions.pop(code, None)
 
     return redirect(url_for("home_bp.index"))

@@ -381,7 +381,7 @@
     // Live Voting Socket Events
     socket.on('voting_started', function(data) {
         // Dead players do not vote
-        if (!isPlayerAlive) return;
+        if (!isPlayerAlive || currentGamePhase !== 'voting') return;
 
         myCurrentVote = null;
         votingActive = true;
@@ -456,6 +456,17 @@
         });
     }
 
+    function closePlayerVotingUI() {
+        clearInterval(votingInterval);
+        votingActive = false;
+        myCurrentVote = null;
+        const modal = document.getElementById('player-voting-modal');
+        if (modal) {
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+        }
+    }
+
     function castVote(targetId, btnEl) {
         if (!votingActive) return;
         if (targetId === playerId) {
@@ -485,11 +496,7 @@
     }
 
     socket.on('voting_ended', function(data) {
-        clearInterval(votingInterval);
-        votingActive = false;
-        const modal = document.getElementById('player-voting-modal');
-        modal.classList.remove('show');
-        modal.style.display = 'none';
+        closePlayerVotingUI();
 
         if (data.is_tie || !data.winner_name) {
             showToast(t('voting_tie'), 'info', 6000);
@@ -498,6 +505,8 @@
             sounds.playGong();
         }
     });
+
+    socket.on('voting_cancelled', closePlayerVotingUI);
 
     // Listen to Phase Changes (Day / Voting / Night)
     let latestPlayersList = {{ night_players | tojson }};
@@ -787,6 +796,7 @@
         currentGamePhase = data.phase;
         const reopen = document.getElementById('night-action-reopen');
         if (reopen && data.phase !== 'night') reopen.style.display = 'none';
+        if (data.phase !== 'voting') closePlayerVotingUI();
 
         if (data.all_players) {
             latestPlayersList = mergePublicRoster(data.all_players);
@@ -822,8 +832,15 @@
         }
 
         if (data.players_saved && data.players_saved.length) {
+            const wasSaved = data.players_saved.some(player => player.id === playerId);
             sounds.playDoctorSave();
-            showToast(t('doctor_saved_city'), 'success', 7000);
+            if (wasSaved) {
+                showToast(t('you_were_saved_title'), 'success', 9000);
+                sendPushNotification(t('you_were_saved_title'), t('you_were_saved_desc'));
+                if (navigator.vibrate) navigator.vibrate([80, 50, 80]);
+            } else {
+                showToast(t('doctor_saved_city'), 'success', 7000);
+            }
         }
         if (data.night_result && data.night_result.no_victims) {
             showToast(t('night_no_victims'), 'info', 7000);

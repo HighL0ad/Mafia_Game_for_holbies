@@ -4,7 +4,7 @@ import pytest
 
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
-from app import active_night_actions, app
+from app import active_night_actions, active_voting_sessions, app
 from database import db
 from models import Player, Room, get_default_roles_config
 from host.host import calculate_game_stats, serialize_player_view, serialize_public_players
@@ -17,8 +17,10 @@ def client():
     with app.app_context():
         db.create_all()
         active_night_actions.clear()
+        active_voting_sessions.clear()
         yield app.test_client()
         active_night_actions.clear()
+        active_voting_sessions.clear()
         db.session.remove()
         db.drop_all()
 
@@ -423,3 +425,20 @@ def test_duplicate_mafia_and_maniac_attack_is_one_death(client):
     assert len(result["victims_eliminated"]) == 1
     assert result["victims_eliminated"][0]["id"] == victim_id
     assert result["victims_eliminated"][0]["sources"] == ["mafia", "maniac"]
+
+
+def test_leaving_voting_phase_closes_stale_voting_session(client):
+    with app.app_context():
+        room = Room(host_code="VOTEEND", status="started", phase="voting", day_number=1)
+        room.players = [
+            Player(room_code="VOTEEND", name="P1", role="Mafia", role_info={"team": "mafia"}),
+            Player(room_code="VOTEEND", name="P2", role="Villager", role_info={"team": "town"}),
+            Player(room_code="VOTEEND", name="P3", role="Villager", role_info={"team": "town"}),
+        ]
+        db.session.add(room)
+        db.session.commit()
+        active_voting_sessions["VOTEEND"] = {"candidates": [], "votes": {}, "open": True}
+
+    response = client.post("/host/set-phase/VOTEEND/night")
+    assert response.status_code == 200
+    assert "VOTEEND" not in active_voting_sessions
