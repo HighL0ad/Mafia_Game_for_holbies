@@ -122,54 +122,24 @@
     </button>
 </div>
 
-<!-- Gunshot Bullet Glass Shatter FX Overlay -->
-<div id="gunshot-flash-overlay" class="gunshot-flash-overlay"></div>
-<div id="bullet-glass-shatter-overlay" class="bullet-glass-shatter-overlay" style="display: none;">
-    <div class="glass-impact-center">
-        <div class="bullet-impact-ring"></div>
-        <div class="bullet-hole"></div>
-    </div>
-    
-    <!-- Exploding flying glass shards -->
-    <div class="glass-shards-container">
-        <div class="glass-shard s1"></div>
-        <div class="glass-shard s2"></div>
-        <div class="glass-shard s3"></div>
-        <div class="glass-shard s4"></div>
-        <div class="glass-shard s5"></div>
-        <div class="glass-shard s6"></div>
-        <div class="glass-shard s7"></div>
-        <div class="glass-shard s8"></div>
-    </div>
+<!-- Procedural gunshot / shattered screen effect shown only to the night victim. -->
+<div id="bullet-glass-shatter-overlay" class="bullet-glass-shatter-overlay" aria-hidden="true" hidden>
+    <div class="glass-fx-stage">
+        <div class="glass-scene-dim"></div>
+        <div class="glass-shot-flash"></div>
+        <div class="bullet-tracer"></div>
+        <canvas id="glass-cracks-canvas" class="glass-cracks-canvas"></canvas>
+        <div id="glass-shards-container" class="glass-shards-container"></div>
+        <div id="glass-particles-container" class="glass-particles-container"></div>
 
-    <!-- Detailed Shattered Glass Vectors -->
-    <svg class="glass-cracks-svg" viewBox="0 0 500 500" preserveAspectRatio="none">
-        <!-- Primary Radial Impact Cracks -->
-        <path class="crack-line c-main" d="M250,250 L180,140 L110,40 L40,10 L0,0" />
-        <path class="crack-line c-main" d="M250,250 L270,130 L340,30 L450,0" />
-        <path class="crack-line c-main" d="M250,250 L360,180 L440,150 L500,140" />
-        <path class="crack-line c-main" d="M250,250 L380,290 L460,330 L500,360" />
-        <path class="crack-line c-main" d="M250,250 L320,380 L360,470 L380,500" />
-        <path class="crack-line c-main" d="M250,250 L210,380 L160,460 L140,500" />
-        <path class="crack-line c-main" d="M250,250 L140,320 L60,380 L0,420" />
-        <path class="crack-line c-main" d="M250,250 L130,220 L40,200 L0,190" />
-        
-        <!-- Concentric Stress Web Fractures -->
-        <path class="crack-line c-web" d="M215,210 Q250,185 285,210 Q305,245 285,280 Q250,305 215,280 Q190,245 215,210 Z" />
-        <path class="crack-line c-web" d="M175,150 Q250,105 325,150 Q370,220 330,335 Q250,390 170,335 Q125,230 175,150 Z" />
-        <path class="crack-line c-web" d="M120,90 Q250,35 380,90 Q445,210 400,400 Q250,470 100,390 Q45,220 120,90 Z" />
-        
-        <!-- Secondary Fine Splinter Cracks -->
-        <path class="crack-line c-fine" d="M215,210 L165,185 L105,215" />
-        <path class="crack-line c-fine" d="M285,210 L355,180 L425,205" />
-        <path class="crack-line c-fine" d="M285,280 L365,315 L415,370" />
-        <path class="crack-line c-fine" d="M215,280 L145,335 L85,355" />
-        <path class="crack-line c-fine" d="M325,150 L395,115 L465,105" />
-        <path class="crack-line c-fine" d="M175,150 L115,115 L55,125" />
-        <path class="crack-line c-fine" d="M330,335 L405,385 L475,415" />
-        <path class="crack-line c-fine" d="M170,335 L115,405 L65,455" />
-    </svg>
-    <div class="glass-frost-overlay"></div>
+        <div class="glass-impact-center">
+            <div class="bullet-impact-flare"></div>
+            <div class="glass-chip-halo"></div>
+            <div class="bullet-hole"><span></span></div>
+        </div>
+
+        <div class="glass-edge-vignette"></div>
+    </div>
 </div>
 
 <!-- Live Voting Modal for Players -->
@@ -195,6 +165,7 @@
     </div>
 </div>
 
+<script src="{{ url_for('static', filename='js/glass-shot.js') }}?v=2.0.0"></script>
 <script>
     const socket = io();
     const playerName = "{{ player.name }}";
@@ -577,29 +548,6 @@
             showToast(`${t('don_decided_toast')} ${data.target_name}`, 'warning', 6000);
         }
     });
-
-    function triggerGunshotAndShatter() {
-        const flashOverlay = document.getElementById('gunshot-flash-overlay');
-        const glassOverlay = document.getElementById('bullet-glass-shatter-overlay');
-
-        if (flashOverlay) {
-            flashOverlay.classList.remove('active');
-            void flashOverlay.offsetWidth;
-            flashOverlay.classList.add('active');
-            setTimeout(() => flashOverlay.classList.remove('active'), 2500);
-        }
-
-        if (glassOverlay) {
-            glassOverlay.style.display = 'flex';
-            glassOverlay.classList.remove('active');
-            void glassOverlay.offsetWidth;
-            glassOverlay.classList.add('active');
-            setTimeout(() => {
-                glassOverlay.classList.remove('active');
-                glassOverlay.style.display = 'none';
-            }, 3500);
-        }
-    }
 
     socket.on('phase_changed', function (data) {
         const overlay = document.getElementById('player-phase-overlay');
