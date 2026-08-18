@@ -128,3 +128,58 @@ def test_custom_role_create_and_delete_endpoints(client):
         r = Room.query.filter_by(host_code="ROOM123").first()
         assert len(r.custom_roles) == 0
         assert role_id not in r.roles_config
+
+
+def test_full_game_lifecycle_start_phase_toggle_end(client):
+    with app.app_context():
+        room = Room(host_code="GAME999", status="waiting")
+        p1 = Player(room_code="GAME999", name="Player 1")
+        p2 = Player(room_code="GAME999", name="Player 2")
+        p3 = Player(room_code="GAME999", name="Player 3")
+        room.players = [p1, p2, p3]
+        db.session.add(room)
+        db.session.commit()
+
+    # 1. Start Game
+    res = client.post("/host/start-game/GAME999", data={
+        "mafia": 1,
+        "don": 0,
+        "doctor": 1,
+        "sheriff": 0,
+        "maniac": 0,
+        "kamikaze": 0,
+        "villager": 1
+    }, follow_redirects=False)
+    assert res.status_code == 302
+
+    with app.app_context():
+        r = Room.query.filter_by(host_code="GAME999").first()
+        assert r.status == "started"
+        assert r.started_at is not None
+
+    # 2. Toggle Phase to Night
+    res = client.post("/host/set-phase/GAME999/night")
+    assert res.status_code == 200
+    assert res.get_json()["phase"] == "night"
+
+    # 3. Toggle Phase to Day
+    res = client.post("/host/set-phase/GAME999/day")
+    assert res.status_code == 200
+    assert res.get_json()["phase"] == "day"
+
+    # 4. Toggle Player Status
+    with app.app_context():
+        p = Player.query.filter_by(room_code="GAME999").first()
+        p_id = p.id
+
+    res = client.post(f"/host/toggle-player-status/GAME999/{p_id}")
+    assert res.status_code == 200
+    assert res.get_json()["is_alive"] is False
+
+    # 5. End Game
+    res = client.post("/host/end-game/GAME999", follow_redirects=False)
+    assert res.status_code == 302
+
+    with app.app_context():
+        r = Room.query.filter_by(host_code="GAME999").first()
+        assert r is None
