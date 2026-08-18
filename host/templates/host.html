@@ -161,7 +161,13 @@
                 <div>
                     <div class="player-name {{ 'player-dead' if not item.is_alive else '' }}">{{ item.name }}</div>
                     {% if item.role %}
-                    <span class="player-role-tag role-tag-{{ item.role.lower() }}" data-role="{{ item.role.lower() }}">{{ item.role }}</span>
+                        {% if item.role_info and item.role_info.get('is_custom') %}
+                        <span class="player-role-tag role-tag-custom" style="background: {{ item.role_info.color }}22; color: {{ item.role_info.color }}; border: 1px solid {{ item.role_info.color }}66;">
+                            <i class="fa-solid {{ item.role_info.icon if item.role_info.icon.startswith('fa-') else 'fa-' ~ item.role_info.icon }}" style="font-size: 0.75rem;"></i> {{ item.role }}
+                        </span>
+                        {% else %}
+                        <span class="player-role-tag role-tag-{{ item.role.lower() }}" data-role="{{ item.role.lower() }}">{{ item.role }}</span>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>
@@ -595,9 +601,19 @@
                 item.className = "player-item";
                 item.id = `player-card-${player.id}`;
                 
-                const roleKey = player.role ? player.role.toLowerCase() : '';
-                const roleTranslated = roleKey ? t('role_' + roleKey) : '';
-                const roleTag = roleKey ? `<span class="player-role-tag role-tag-${roleKey}">${roleTranslated}</span>` : '';
+                let roleTag = '';
+                if (player.role) {
+                    if (player.role_info && player.role_info.is_custom) {
+                        const color = player.role_info.color || '#3a86ff';
+                        const rawIcon = player.role_info.icon || 'fa-user-secret';
+                        const iconClass = rawIcon.startsWith('fa-') ? rawIcon : 'fa-' + rawIcon;
+                        roleTag = `<span class="player-role-tag role-tag-custom" style="background: ${color}22; color: ${color}; border: 1px solid ${color}66;"><i class="fa-solid ${iconClass}" style="font-size: 0.75rem;"></i> ${player.role}</span>`;
+                    } else {
+                        const roleKey = player.role.toLowerCase();
+                        const roleTranslated = t('role_' + roleKey) || player.role;
+                        roleTag = `<span class="player-role-tag role-tag-${roleKey}">${roleTranslated}</span>`;
+                    }
+                }
                 const deadClass = (!player.is_alive) ? 'player-dead' : '';
 
                 let statusBtn = '';

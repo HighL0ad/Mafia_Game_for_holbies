@@ -698,6 +698,7 @@ body {
 .role-tag-maniac { background: rgba(155, 93, 229, 0.2); color: var(--role-maniac); border: 1px solid rgba(155, 93, 229, 0.4); }
 .role-tag-kamikaze { background: rgba(251, 86, 7, 0.2); color: var(--role-kamikaze); border: 1px solid rgba(251, 86, 7, 0.4); }
 .role-tag-villager { background: rgba(141, 153, 174, 0.2); color: var(--role-villager); border: 1px solid rgba(141, 153, 174, 0.4); }
+.role-tag-custom { display: inline-flex; align-items: center; gap: 4px; }
 
 .player-dead {
     opacity: 0.45;
@@ -848,17 +849,14 @@ body {
     background: var(--color-danger);
     color: #ffffff;
 }
-    font-size: 1rem;
-    color: #ffffff;
-}
 
 .villager-auto-box {
     background: rgba(141, 153, 174, 0.08);
-    border: 1px dashed rgba(141, 153, 174, 0.25);
+    border: 1px dashed rgba(141, 153, 174, 0.35);
     border-radius: var(--radius-md);
-    padding: 14px 18px;
-    margin-top: 14px;
-    margin-bottom: 18px;
+    padding: 12px 16px;
+    margin-top: 12px;
+    margin-bottom: 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;

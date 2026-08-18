@@ -460,8 +460,19 @@
             const row = document.createElement('div');
             row.className = `ghost-player-row ${!p.is_alive ? 'dead' : ''}`;
             
-            const roleKey = p.role ? p.role.toLowerCase() : '';
-            const roleTag = roleKey ? `<span class="player-role-tag role-tag-${roleKey}" style="margin: 0; padding: 2px 8px; font-size: 0.75rem;">${t('role_' + roleKey)}</span>` : '';
+            let roleTag = '';
+            if (p.role) {
+                if (p.role_info && p.role_info.is_custom) {
+                    const color = p.role_info.color || '#3a86ff';
+                    const rawIcon = p.role_info.icon || 'fa-user-secret';
+                    const iconClass = rawIcon.startsWith('fa-') ? rawIcon : 'fa-' + rawIcon;
+                    roleTag = `<span class="player-role-tag role-tag-custom" style="margin: 0; padding: 2px 8px; font-size: 0.75rem; background: ${color}22; color: ${color}; border: 1px solid ${color}66;"><i class="fa-solid ${iconClass}" style="font-size: 0.75rem;"></i> ${p.role}</span>`;
+                } else {
+                    const roleKey = p.role.toLowerCase();
+                    const roleTranslated = t('role_' + roleKey) || p.role;
+                    roleTag = `<span class="player-role-tag role-tag-${roleKey}" style="margin: 0; padding: 2px 8px; font-size: 0.75rem;">${roleTranslated}</span>`;
+                }
+            }
             const statusBadge = p.is_alive 
                 ? `<span class="ghost-status-badge alive">${t('status_alive_badge')}</span>` 
                 : `<span class="ghost-status-badge dead">${t('status_dead_badge')}</span>`;
