@@ -1079,20 +1079,40 @@ body {
     animation: fadeInModal 0.25s ease-out;
 }
 
+.player-item.is-mafia-targeted {
+    border-color: rgba(230, 57, 70, 0.6) !important;
+    background: rgba(230, 57, 70, 0.08) !important;
+    box-shadow: 0 0 16px rgba(230, 57, 70, 0.25);
+}
+
+.player-item.is-don-targeted {
+    border-color: rgba(244, 162, 97, 0.6) !important;
+    background: rgba(244, 162, 97, 0.08) !important;
+    box-shadow: 0 0 16px rgba(244, 162, 97, 0.25);
+}
+
 .mafia-target-badge {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    background: rgba(230, 57, 70, 0.2);
+    background: rgba(230, 57, 70, 0.25);
     border: 1px solid var(--role-mafia);
     color: var(--role-mafia);
-    padding: 2px 8px;
+    padding: 2px 7px;
     border-radius: 6px;
     font-size: 0.72rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    margin-left: 6px;
+    vertical-align: middle;
     animation: pulseGlow 1.8s infinite;
+}
+
+.mafia-target-badge.don {
+    background: rgba(244, 162, 97, 0.25);
+    border-color: var(--role-don);
+    color: var(--role-don);
 }
 
 @keyframes pulseGlow {

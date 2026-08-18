@@ -152,7 +152,7 @@
         <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(230, 57, 70, 0.08); border: 1px dashed rgba(230, 57, 70, 0.35); border-radius: var(--radius-md); padding: 12px 16px;">
             <div style="display: flex; align-items: center; gap: 8px;">
                 <i class="fa-solid fa-crosshairs" style="color: var(--role-mafia); font-size: 1.1rem;"></i>
-                <span style="font-weight: 600; color: var(--text-secondary);" data-i18n="mafia_target_label">Mafiyanın hədəfi:</span>
+                <span style="font-weight: 600; color: var(--text-secondary);" data-i18n="mafia_target_label">Mafiyanın hədəfi</span>
             </div>
             <strong id="host-mafia-target-display" style="font-size: 1rem; color: #ffffff; font-weight: 700;">
                 <span data-i18n="waiting_mafia_choice">Seçim gözlənilir...</span>
@@ -478,23 +478,26 @@
             }
         }
 
-        // Remove previous target badges
+        // Remove previous target styling and badges
+        document.querySelectorAll('.player-item').forEach(el => {
+            el.classList.remove('is-mafia-targeted', 'is-don-targeted');
+        });
         document.querySelectorAll('.mafia-target-badge').forEach(el => el.remove());
 
         // Add badge to targeted player card in host view
         if (data.target_id) {
             const card = document.getElementById(`player-card-${data.target_id}`);
             if (card) {
+                card.classList.add(data.is_don_decision ? 'is-don-targeted' : 'is-mafia-targeted');
                 const infoDiv = card.querySelector('.player-info > div');
                 if (infoDiv) {
                     const badge = document.createElement('span');
-                    badge.className = 'mafia-target-badge';
+                    badge.className = `mafia-target-badge ${data.is_don_decision ? 'don' : ''}`;
+                    const targetText = t('mafia_target_badge_text') || 'Hədəf';
                     if (data.is_don_decision) {
-                        badge.style.borderColor = 'var(--role-don)';
-                        badge.style.color = 'var(--role-don)';
-                        badge.innerHTML = '<i class="fa-solid fa-crown"></i> ' + (t('don_badge') || 'Don') + ' ' + (t('mafia_target_label') || 'Hədəf');
+                        badge.innerHTML = `<i class="fa-solid fa-crown"></i> ${t('don_badge') || 'Don'} ${targetText}`;
                     } else {
-                        badge.innerHTML = '<i class="fa-solid fa-crosshairs"></i> ' + (t('mafia_target_label') || 'Hədəf');
+                        badge.innerHTML = `<i class="fa-solid fa-crosshairs"></i> ${targetText}`;
                     }
                     infoDiv.appendChild(badge);
                 }
