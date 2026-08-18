@@ -199,7 +199,7 @@
         </div>
 
         <form id="roles-form" action="{{ url_for('host_bp.start_game', code=code ) }}" method="post">
-            <div class="role-stepper-grid">
+            <div class="role-stepper-grid" id="roles-stepper-grid">
                 <!-- Mafia -->
                 <div class="role-stepper-item">
                     <span class="role-stepper-label">
@@ -277,16 +277,13 @@
                         <button type="button" class="stepper-btn" onclick="changeRole('kamikaze', 1)">+</button>
                     </div>
                 </div>
-            </div>
 
-            <!-- Custom Roles Grid -->
-            <div class="custom-roles-grid" id="custom-roles-grid">
+                <!-- Custom Roles in the unified grid -->
                 {% for cr in custom_roles %}
-                <div class="role-stepper-item custom-role-item" id="custom-role-item-{{ cr.id }}">
-                    <span class="role-stepper-label" style="display: flex; align-items: center; gap: 8px;">
-                        <i class="fa-solid {{ cr.icon if cr.icon.startswith('fa-') else 'fa-' ~ cr.icon }}" style="color: {{ cr.color }}; font-size: 0.95rem;"></i>
-                        <strong style="color: #ffffff;">{{ cr.name }}</strong>
-                        <span class="custom-team-chip team-chip-{{ cr.team }}">{{ cr.team }}</span>
+                <div class="role-stepper-item" id="custom-role-item-{{ cr.id }}">
+                    <span class="role-stepper-label">
+                        <span class="role-indicator" style="background: {{ cr.color }};"></span>
+                        <span>{{ cr.name }}</span>
                     </span>
                     <div class="controls-stepper">
                         <button type="button" class="stepper-btn" onclick="changeRole('{{ cr.id }}', -1)">-</button>
@@ -923,17 +920,15 @@
         .then(data => {
             if (data.success && data.role) {
                 const cr = data.role;
-                const grid = document.getElementById('custom-roles-grid');
+                const grid = document.getElementById('roles-stepper-grid');
                 if (grid) {
                     const row = document.createElement('div');
-                    row.className = 'role-stepper-item custom-role-item';
+                    row.className = 'role-stepper-item';
                     row.id = `custom-role-item-${cr.id}`;
-                    const iconClass = cr.icon.startsWith('fa-') ? `fa-solid ${cr.icon}` : `fa-solid fa-${cr.icon}`;
                     row.innerHTML = `
-                        <span class="role-stepper-label" style="display: flex; align-items: center; gap: 8px;">
-                            <i class="${iconClass}" style="color: ${cr.color}; font-size: 0.95rem;"></i>
-                            <strong style="color: #ffffff;">${cr.name}</strong>
-                            <span class="custom-team-chip team-chip-${cr.team}">${cr.team}</span>
+                        <span class="role-stepper-label">
+                            <span class="role-indicator" style="background: ${cr.color};"></span>
+                            <span>${cr.name}</span>
                         </span>
                         <div class="controls-stepper">
                             <button type="button" class="stepper-btn" onclick="changeRole('${cr.id}', -1)">-</button>
@@ -983,7 +978,7 @@
 
         <div class="custom-role-field">
             <label data-i18n="role_name_label">Rolun adı</label>
-            <input type="text" id="custom-role-name" class="form-input" placeholder="Məs: Casus, Mühafizəçi, Vəkil..." maxlength="32">
+            <input type="text" id="custom-role-name" class="modal-input" placeholder="Məs: Casus, Mühafizəçi, Vəkil..." maxlength="32">
         </div>
 
         <div class="custom-role-field">
@@ -1016,12 +1011,12 @@
 
         <div class="custom-role-field">
             <label data-i18n="role_desc_label">Qabiliyyət və Təsvir</label>
-            <textarea id="custom-role-desc" class="form-input" rows="2" placeholder="Bu rolun gecə və ya gündüz hansı qabiliyyəti var..."></textarea>
+            <textarea id="custom-role-desc" class="modal-textarea" placeholder="Bu rolun gecə və ya gündüz hansı qabiliyyəti var..."></textarea>
         </div>
 
         <div class="modal-card-actions">
             <button type="button" class="btn btn-secondary" onclick="closeCustomRoleModal()" data-i18n="btn_cancel">İmtina</button>
-            <button type="button" class="btn btn-primary" onclick="submitCustomRole()" data-i18n="btn_create_role">Rolı Yarat və Əlavə et</button>
+            <button type="button" class="btn btn-primary" onclick="submitCustomRole()" data-i18n="btn_create_role">Rolu əlavə et</button>
         </div>
     </div>
 </div>
