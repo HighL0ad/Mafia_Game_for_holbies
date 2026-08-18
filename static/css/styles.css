@@ -740,14 +740,14 @@ body {
 .role-stepper-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 10px;
     margin-top: 14px;
     margin-bottom: 14px;
 }
 
-@media (min-width: 500px) {
+@media (min-width: 480px) {
     .role-stepper-grid {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
@@ -755,19 +755,32 @@ body {
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
-    padding: 12px 14px;
+    padding: 8px 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
+    min-width: 0;
+    height: 48px;
+    box-sizing: border-box;
 }
 
 .role-stepper-label {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 0.92rem;
+    font-size: 0.9rem;
     font-weight: 600;
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+}
+
+.role-stepper-label span:not(.role-indicator) {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
 }
 
 .role-indicator {
@@ -780,23 +793,25 @@ body {
 .controls-stepper {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
+    flex-shrink: 0;
 }
 
 .stepper-btn {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     background: var(--bg-surface-elevated);
     border: 1px solid var(--border-subtle);
     color: #ffffff;
-    border-radius: 8px;
-    font-size: 1rem;
+    border-radius: 6px;
+    font-size: 0.95rem;
     font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: var(--transition);
+    flex-shrink: 0;
 }
 
 .stepper-btn:hover {
@@ -805,9 +820,34 @@ body {
 }
 
 .stepper-val {
-    width: 24px;
+    width: 20px;
     text-align: center;
     font-weight: 700;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+
+.stepper-delete-btn {
+    background: rgba(230, 57, 70, 0.1);
+    border: 1px solid rgba(230, 57, 70, 0.25);
+    color: var(--color-danger);
+    border-radius: 6px;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.8rem;
+    flex-shrink: 0;
+    margin-left: 2px;
+}
+
+.stepper-delete-btn:hover {
+    background: var(--color-danger);
+    color: #ffffff;
+}
     font-size: 1rem;
     color: #ffffff;
 }
@@ -1443,28 +1483,6 @@ body {
     background: rgba(155, 93, 229, 0.15);
     color: var(--role-maniac);
     border: 1px solid rgba(155, 93, 229, 0.3);
-}
-
-.stepper-delete-btn {
-    background: rgba(230, 57, 70, 0.12);
-    border: 1px solid rgba(230, 57, 70, 0.3);
-    color: var(--color-danger);
-    border-radius: var(--radius-sm);
-    width: 32px;
-    height: 32px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: var(--transition);
-    margin-left: 4px;
-    font-size: 0.82rem;
-    flex-shrink: 0;
-}
-
-.stepper-delete-btn:hover {
-    background: var(--color-danger);
-    color: #ffffff;
 }
 
 /* Custom Role Creator Modal */
