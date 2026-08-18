@@ -450,11 +450,17 @@
         validTargets.forEach(c => {
             const btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = `mafia-target-btn ${selectedMafiaTargetId === c.id ? 'selected' : ''}`;
+            const isSel = (selectedMafiaTargetId === c.id);
+            btn.className = `mafia-target-btn ${isSel ? 'selected' : ''}`;
             btn.dataset.id = c.id;
             btn.innerHTML = `
-                <span><i class="fa-solid fa-crosshairs" style="margin-right: 5px; font-size: 0.8rem; color: var(--role-mafia);"></i>${c.name}</span>
-                <i class="fa-regular ${selectedMafiaTargetId === c.id ? 'fa-circle-dot' : 'fa-circle'}"></i>
+                <div style="display: flex; align-items: center; gap: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <i class="fa-solid fa-user" style="color: ${isSel ? 'var(--role-mafia)' : 'var(--text-muted)'}; font-size: 0.8rem;"></i>
+                    <span style="overflow: hidden; text-overflow: ellipsis;">${c.name}</span>
+                </div>
+                <div class="mafia-target-radio">
+                    <i class="fa-regular ${isSel ? 'fa-circle-dot' : 'fa-circle'}" style="color: ${isSel ? 'var(--role-mafia)' : 'var(--text-muted)'}; font-size: 0.92rem;"></i>
+                </div>
             `;
             btn.onclick = function() { selectMafiaTarget(c.id, this); };
             list.appendChild(btn);
@@ -467,13 +473,23 @@
 
         document.querySelectorAll('.mafia-target-btn').forEach(b => {
             b.classList.remove('selected');
-            const icon = b.querySelector('i:last-child');
-            if (icon) icon.className = 'fa-regular fa-circle';
+            const userIcon = b.querySelector('i.fa-user');
+            if (userIcon) userIcon.style.color = 'var(--text-muted)';
+            const radioIcon = b.querySelector('.mafia-target-radio i');
+            if (radioIcon) {
+                radioIcon.className = 'fa-regular fa-circle';
+                radioIcon.style.color = 'var(--text-muted)';
+            }
         });
 
         btnEl.classList.add('selected');
-        const icon = btnEl.querySelector('i:last-child');
-        if (icon) icon.className = 'fa-solid fa-circle-dot';
+        const userIcon = btnEl.querySelector('i.fa-user');
+        if (userIcon) userIcon.style.color = 'var(--role-mafia)';
+        const radioIcon = btnEl.querySelector('.mafia-target-radio i');
+        if (radioIcon) {
+            radioIcon.className = 'fa-solid fa-circle-dot';
+            radioIcon.style.color = 'var(--role-mafia)';
+        }
 
         socket.emit('mafia_select_target', {
             room: roomCode,
@@ -490,8 +506,13 @@
         document.querySelectorAll('.mafia-target-btn').forEach(b => {
             const isMatch = (parseInt(b.dataset.id) === data.target_id);
             b.classList.toggle('selected', isMatch);
-            const icon = b.querySelector('i:last-child');
-            if (icon) icon.className = isMatch ? 'fa-solid fa-circle-dot' : 'fa-regular fa-circle';
+            const userIcon = b.querySelector('i.fa-user');
+            if (userIcon) userIcon.style.color = isMatch ? 'var(--role-mafia)' : 'var(--text-muted)';
+            const radioIcon = b.querySelector('.mafia-target-radio i');
+            if (radioIcon) {
+                radioIcon.className = isMatch ? 'fa-solid fa-circle-dot' : 'fa-regular fa-circle';
+                radioIcon.style.color = isMatch ? 'var(--role-mafia)' : 'var(--text-muted)';
+            }
         });
     });
 
