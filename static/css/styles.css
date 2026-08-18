@@ -900,6 +900,29 @@ body:has(.game-results-overlay[style*="display: flex"]) .top-nav-bar {
     font-size: 0.95rem;
 }
 
+.composition-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 0 0 14px;
+    padding: 12px 14px;
+    border: 1px solid rgba(255, 183, 3, 0.35);
+    border-radius: var(--radius-md);
+    background: rgba(255, 183, 3, 0.1);
+    color: #ffd166;
+    font-size: 0.84rem;
+    line-height: 1.45;
+}
+
+.composition-warning[hidden] {
+    display: none;
+}
+
+.composition-warning i {
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
 /* Host Timer & Phase Control */
 .host-controls-panel {
     background: var(--bg-surface-elevated);

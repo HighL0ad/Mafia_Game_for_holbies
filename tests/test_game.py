@@ -7,7 +7,12 @@ os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 from app import active_night_actions, active_voting_sessions, app
 from database import db
 from models import Player, Room, get_default_roles_config
-from host.host import calculate_game_stats, serialize_player_view, serialize_public_players
+from host.host import (
+    calculate_game_stats,
+    serialize_player_view,
+    serialize_public_players,
+    validate_initial_role_balance,
+)
 from utils.role import assign_roles
 
 
@@ -187,6 +192,65 @@ def test_full_game_lifecycle_start_phase_toggle_end(client):
     with app.app_context():
         r = Room.query.filter_by(host_code="GAME999").first()
         assert r is None
+
+
+def test_start_game_rejects_composition_that_already_gives_mafia_the_win(client):
+    with app.app_context():
+        room = Room(host_code="BADBAL", status="waiting")
+        room.players = [
+            Player(room_code="BADBAL", name="Doctor"),
+            Player(room_code="BADBAL", name="Don"),
+            Player(room_code="BADBAL", name="Mafia"),
+        ]
+        db.session.add(room)
+        db.session.commit()
+
+    host_page = client.get("/host/BADBAL")
+    assert host_page.status_code == 200
+    assert b'composition-warning' in host_page.data
+
+    response = client.post("/host/start-game/BADBAL", data={
+        "mafia": 1,
+        "don": 1,
+        "doctor": 1,
+        "sheriff": 0,
+        "maniac": 0,
+        "kamikaze": 0,
+        "villager": 0,
+    })
+
+    assert response.status_code == 400
+    assert response.get_json()["error_key"] == "invalid_initial_balance_mafia"
+    with app.app_context():
+        room = Room.query.filter_by(host_code="BADBAL").first()
+        assert room.status == "waiting"
+        assert all(player.role is None for player in room.players)
+
+
+def test_initial_balance_uses_custom_role_teams():
+    balance = validate_initial_role_balance(
+        {"mafia": 1, "custom_don": 1, "doctor": 1},
+        [{"id": "custom_don", "name": "Consigliere", "team": "mafia"}],
+    )
+
+    assert balance["valid"] is False
+    assert balance["winner"] == "mafia"
+    assert balance["mafia"] == 2
+
+
+@pytest.mark.parametrize(
+    ("roles_config", "winner"),
+    [
+        ({"doctor": 1, "sheriff": 1, "villager": 1}, "town"),
+        ({"maniac": 1, "villager": 1}, "maniac"),
+        ({"mafia": 1, "doctor": 1, "villager": 1}, None),
+    ],
+)
+def test_initial_balance_matches_game_win_conditions(roles_config, winner):
+    balance = validate_initial_role_balance(roles_config)
+
+    assert balance["winner"] == winner
+    assert balance["valid"] is (winner is None)
 
 
 def test_mafia_night_target_and_auto_win_condition(client):

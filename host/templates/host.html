@@ -356,6 +356,11 @@
                 <input type="hidden" name="villager" id="villager" value="{{ roles_config.get('villager', 0) }}">
             </div>
 
+            <div id="composition-warning" class="composition-warning" role="alert" hidden>
+                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                <span id="composition-warning-text"></span>
+            </div>
+
             <button type="submit" id="start-game" class="btn btn-primary mt-3" {{ 'disabled' if player_count < 3 else '' }}>
                 <i class="fa-solid fa-play"></i> 
                 <span id="start-btn-text">{{ 'Oyunu başlat' if player_count >= 3 else 'Ən azı 3 oyunçu lazımdır (' ~ player_count ~ '/3)' }}</span>
@@ -395,6 +400,18 @@
     let currentVotingWinnerId = null;
     const initialNightMonitor = {{ night_monitor | tojson }};
     let latestNightMonitor = initialNightMonitor;
+    const roleTeams = {
+        mafia: 'mafia',
+        don: 'mafia',
+        doctor: 'town',
+        sheriff: 'town',
+        maniac: 'neutral',
+        kamikaze: 'town',
+        villager: 'town'
+    };
+    {% for cr in custom_roles %}
+    roleTeams[{{ cr.id | tojson }}] = {{ cr.get('team', 'town') | tojson }};
+    {% endfor %}
 
     function escapeMonitorText(value) {
         const span = document.createElement('span');
@@ -981,6 +998,27 @@
         return total;
     }
 
+    function calculateInitialRoleBalance() {
+        const counts = { mafia: 0, town: 0, neutral: 0 };
+        document.querySelectorAll('#roles-form input[type="hidden"]').forEach(input => {
+            const count = Math.max(0, parseInt(input.value, 10) || 0);
+            const team = roleTeams[input.id] || 'town';
+            const safeTeam = Object.prototype.hasOwnProperty.call(counts, team) ? team : 'town';
+            counts[safeTeam] += count;
+        });
+
+        let errorKey = null;
+        if (counts.mafia === 0 && counts.neutral === 0) {
+            errorKey = 'invalid_initial_balance_town';
+        } else if (counts.mafia > 0 && counts.mafia >= counts.town + counts.neutral) {
+            errorKey = 'invalid_initial_balance_mafia';
+        } else if (counts.neutral === 1 && counts.mafia === 0 && counts.town <= 1) {
+            errorKey = 'invalid_initial_balance_maniac';
+        }
+
+        return { valid: errorKey === null, errorKey, ...counts };
+    }
+
     function updateVillagerCount() {
         if (!document.getElementById('villager-count')) return;
 
@@ -993,10 +1031,21 @@
 
         const startButton = document.getElementById('start-game');
         const startText = document.getElementById('start-btn-text');
+        const warning = document.getElementById('composition-warning');
+        const warningText = document.getElementById('composition-warning-text');
+        const balance = calculateInitialRoleBalance();
+        const showBalanceWarning = playerCount >= 3 && !balance.valid;
+        if (warning && warningText) {
+            warning.hidden = !showBalanceWarning;
+            warningText.textContent = showBalanceWarning ? t(balance.errorKey) : '';
+        }
         if (startButton && startText) {
             if (playerCount < 3) {
                 startButton.disabled = true;
                 startText.textContent = `${t('min_players_needed')} (${playerCount}/3)`;
+            } else if (!balance.valid) {
+                startButton.disabled = true;
+                startText.textContent = t('fix_role_balance');
             } else {
                 startButton.disabled = false;
                 startText.textContent = `${t('btn_start_game')} (${playerCount})`;
@@ -1246,6 +1295,7 @@
         .then(data => {
             if (data.success && data.role) {
                 const cr = data.role;
+                roleTeams[cr.id] = cr.team || 'town';
                 const customRoleColor = safeHostRoleColor(cr.color);
                 const grid = document.getElementById('roles-stepper-grid');
                 if (grid) {
@@ -1282,6 +1332,7 @@
                 if (data.success) {
                     const el = document.getElementById(`custom-role-item-${roleId}`);
                     if (el) el.remove();
+                    delete roleTeams[roleId];
                     updateVillagerCount();
                     showToast(t('role_deleted_toast'), 'info');
                     sounds.playClick();

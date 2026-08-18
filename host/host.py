@@ -5,7 +5,7 @@ from flask.blueprints import Blueprint
 
 from database import db
 from models import Player, Room, get_default_roles_config
-from utils.role import assign_roles
+from utils.role import STANDARD_ROLES, assign_roles
 from websock import socketio
 
 host_bp = Blueprint(
@@ -50,6 +50,50 @@ def emit_private_player_rosters(players):
         )
 
 
+def _determine_winner(mafia_count, town_count, neutral_count, total_count):
+    if total_count <= 0:
+        return None
+    if mafia_count == 0 and neutral_count == 0:
+        return "town"
+    if mafia_count > 0 and mafia_count >= (town_count + neutral_count):
+        return "mafia"
+    if neutral_count == 1 and mafia_count == 0 and town_count <= 1:
+        return "maniac"
+    return None
+
+
+def validate_initial_role_balance(roles_config, custom_roles=None):
+    custom_teams = {
+        role.get("id"): role.get("team", "town")
+        for role in (custom_roles or [])
+        if isinstance(role, dict) and role.get("id")
+    }
+    counts = {"mafia": 0, "town": 0, "neutral": 0}
+
+    for role_key, role_count in roles_config.items():
+        count = int(role_count or 0)
+        if count <= 0:
+            continue
+        if role_key in STANDARD_ROLES:
+            team = STANDARD_ROLES[role_key].get("team", "town")
+        else:
+            team = custom_teams.get(role_key, "town")
+        counts[team if team in counts else "town"] += count
+
+    total_count = sum(counts.values())
+    winner = _determine_winner(
+        counts["mafia"], counts["town"], counts["neutral"], total_count
+    )
+    return {
+        "valid": winner is None,
+        "winner": winner,
+        "mafia": counts["mafia"],
+        "town": counts["town"],
+        "neutral": counts["neutral"],
+        "error_key": f"invalid_initial_balance_{winner}" if winner else None,
+    }
+
+
 def calculate_game_stats(players):
     mafia_count = 0
     town_count = 0
@@ -69,14 +113,9 @@ def calculate_game_stats(players):
         else:
             town_count += 1
 
-    winner = None
-    if len(alive_players) > 0:
-        if mafia_count == 0 and maniac_count == 0:
-            winner = "town"
-        elif mafia_count >= (town_count + maniac_count) and mafia_count > 0:
-            winner = "mafia"
-        elif maniac_count == 1 and mafia_count == 0 and town_count <= 1:
-            winner = "maniac"
+    winner = _determine_winner(
+        mafia_count, town_count, maniac_count, len(alive_players)
+    )
 
     return {
         "alive_total": len(alive_players),
@@ -219,23 +258,38 @@ def start_game(code: str):
     if len(players) < 3:
         return "Для начала игры необходимо минимум 3 игрока", 400
 
-    roles_config = {
-        "mafia": int(request.form.get("mafia", 0)),
-        "don": int(request.form.get("don", 0)),
-        "doctor": int(request.form.get("doctor", 0)),
-        "sheriff": int(request.form.get("sheriff", 0)),
-        "maniac": int(request.form.get("maniac", 0)),
-        "kamikaze": int(request.form.get("kamikaze", 0)),
-        "villager": int(request.form.get("villager", 0))
-    }
+    role_keys = [
+        "mafia", "don", "doctor", "sheriff", "maniac", "kamikaze", "villager"
+    ]
+    role_keys.extend(
+        cr["id"]
+        for cr in (room.custom_roles or [])
+        if isinstance(cr, dict) and cr.get("id")
+    )
+    try:
+        roles_config = {key: int(request.form.get(key, 0)) for key in role_keys}
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "error_key": "invalid_role_count"}), 400
 
-    for cr in (room.custom_roles or []):
-        if "id" in cr:
-            roles_config[cr["id"]] = int(request.form.get(cr["id"], 0))
+    if any(count < 0 for count in roles_config.values()):
+        return jsonify({"success": False, "error_key": "invalid_role_count"}), 400
 
     total_roles = sum(roles_config.values())
     if total_roles != len(players):
-        return f"Количество ролей ({total_roles}) должно равняться количеству игроков ({len(players)})", 400
+        return jsonify({
+            "success": False,
+            "error_key": "roles_count_mismatch",
+            "roles_count": total_roles,
+            "players_count": len(players),
+        }), 400
+
+    balance = validate_initial_role_balance(roles_config, room.custom_roles)
+    if not balance["valid"]:
+        return jsonify({
+            "success": False,
+            "error_key": balance["error_key"],
+            "balance": balance,
+        }), 400
 
     players_dict_list = [{"id": p.id, "name": p.name, "role": None} for p in players]
     assign_roles(players_dict_list, roles_config, room.custom_roles)
