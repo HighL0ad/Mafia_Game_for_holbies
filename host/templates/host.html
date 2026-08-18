@@ -184,18 +184,18 @@
     <!-- Roles Setup (When waiting) -->
     {% if status == "waiting" %}
     <div class="roles-config-card">
-        <div class="section-header" style="margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
-            <h4 style="font-size: 1rem; font-weight: 700; color: #ffffff;">
-                <i class="fa-solid fa-sliders"></i> <span data-i18n="role_config_title">Rolların tənzimlənməsi</span>
-            </h4>
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <button type="button" class="btn-add-custom-role" onclick="openCustomRoleModal()">
-                    <i class="fa-solid fa-plus"></i> <span data-i18n="add_custom_role_btn">+ Öz rolunu yarat</span>
-                </button>
-                <span class="text-muted" style="font-size: 0.82rem;">
+        <div class="roles-header-row">
+            <div>
+                <h4 style="font-size: 1rem; font-weight: 700; color: #ffffff; margin: 0 0 2px 0;">
+                    <i class="fa-solid fa-sliders"></i> <span data-i18n="role_config_title">Rolların tənzimlənməsi</span>
+                </h4>
+                <span class="text-muted" style="font-size: 0.8rem;">
                     <span data-i18n="special_roles_label">Xüsusi rollar:</span> <strong id="total-roles" style="color: #ffffff;">{{ total_roles }}</strong> / <span id="player-count-display">{{ player_count }}</span>
                 </span>
             </div>
+            <button type="button" class="btn-add-custom-role" onclick="openCustomRoleModal()">
+                <i class="fa-solid fa-plus"></i> <span data-i18n="add_custom_role_btn">Öz rolunu yarat</span>
+            </button>
         </div>
 
         <form id="roles-form" action="{{ url_for('host_bp.start_game', code=code ) }}" method="post">
@@ -282,7 +282,7 @@
             <!-- Custom Roles Grid -->
             <div class="custom-roles-grid" id="custom-roles-grid">
                 {% for cr in custom_roles %}
-                <div class="custom-role-item" id="custom-role-item-{{ cr.id }}" style="border-left: 3px solid {{ cr.color }};">
+                <div class="role-stepper-item custom-role-item" id="custom-role-item-{{ cr.id }}">
                     <span class="role-stepper-label" style="display: flex; align-items: center; gap: 8px;">
                         <i class="fa-solid {{ cr.icon if cr.icon.startswith('fa-') else 'fa-' ~ cr.icon }}" style="color: {{ cr.color }}; font-size: 0.95rem;"></i>
                         <strong style="color: #ffffff;">{{ cr.name }}</strong>
@@ -926,9 +926,8 @@
                 const grid = document.getElementById('custom-roles-grid');
                 if (grid) {
                     const row = document.createElement('div');
-                    row.className = 'custom-role-item';
+                    row.className = 'role-stepper-item custom-role-item';
                     row.id = `custom-role-item-${cr.id}`;
-                    row.style.borderLeft = `3px solid ${cr.color}`;
                     const iconClass = cr.icon.startsWith('fa-') ? `fa-solid ${cr.icon}` : `fa-solid fa-${cr.icon}`;
                     row.innerHTML = `
                         <span class="role-stepper-label" style="display: flex; align-items: center; gap: 8px;">

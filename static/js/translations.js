@@ -110,7 +110,7 @@ const TRANSLATIONS = {
         winner_maniac_desc: "Tək qatil hər kəsi aradan qaldıraraq sağ qaldı.",
         
         // Custom Roles Builder
-        add_custom_role_btn: "+ Öz rolunu yarat",
+        add_custom_role_btn: "Öz rolunu yarat",
         custom_role_modal_title: "Yeni Rol Yarat",
         role_name_label: "Rolun adı",
         role_name_placeholder: "Məs: Casus, Mühafizəçi, Vəkil...",
@@ -254,7 +254,7 @@ const TRANSLATIONS = {
         winner_maniac_desc: "Одинокий маньяк устранил всех и остался последним выжившим.",
         
         // Custom Roles Builder
-        add_custom_role_btn: "+ Создать свою роль",
+        add_custom_role_btn: "Создать свою роль",
         custom_role_modal_title: "Конструктор роли",
         role_name_label: "Название роли",
         role_name_placeholder: "Напр: Шпион, Телохранитель, Адвокат...",
@@ -398,7 +398,7 @@ const TRANSLATIONS = {
         winner_maniac_desc: "The solo maniac outlasted everyone and won.",
         
         // Custom Roles Builder
-        add_custom_role_btn: "+ Create Custom Role",
+        add_custom_role_btn: "Create Custom Role",
         custom_role_modal_title: "Create Custom Role",
         role_name_label: "Role Name",
         role_name_placeholder: "E.g. Spy, Bodyguard, Lawyer...",
