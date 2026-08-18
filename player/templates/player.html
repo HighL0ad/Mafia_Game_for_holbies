@@ -175,32 +175,74 @@
     document.addEventListener('click', () => requestPushPermission(), { once: true });
     document.addEventListener('touchstart', () => requestPushPermission(), { once: true });
 
-    function updateRoleDisplay(roleName) {
+    let currentRoleInfo = {{ (player.role_info or {}) | tojson }};
+
+    function updateRoleDisplay(roleName, roleInfo) {
         if (!roleName) return;
         const key = roleName.toLowerCase();
         currentRoleKey = key;
+        if (roleInfo) currentRoleInfo = roleInfo;
 
         const card = document.getElementById('role-card');
-        card.className = `card-inner theme-${key}`;
-
         const roleTitle = document.getElementById('role-title');
         const roleTeam = document.getElementById('role-team');
         const roleIcon = document.getElementById('role-icon');
         const roleDesc = document.getElementById('role-desc');
 
-        if (roleTitle) roleTitle.textContent = t('role_' + key);
-        if (roleTeam) {
-            if (key === 'mafia') roleTeam.textContent = t('team_mafia');
-            else if (key === 'don') roleTeam.textContent = t('team_don');
-            else if (key === 'maniac') roleTeam.textContent = t('team_neutral');
-            else roleTeam.textContent = t('team_town');
-        }
-        if (roleIcon) {
-            const iconClass = roleIcons[key] || 'fa-solid fa-mask';
-            roleIcon.innerHTML = `<i class="${iconClass}"></i>`;
-        }
-        if (roleDesc) {
-            roleDesc.innerHTML = t('desc_' + key);
+        if (currentRoleInfo && currentRoleInfo.is_custom) {
+            const roleColor = currentRoleInfo.color || '#3a86ff';
+            card.className = 'card-inner theme-custom';
+            card.style.setProperty('--custom-role-color', roleColor);
+
+            if (roleTitle) {
+                roleTitle.textContent = currentRoleInfo.name || roleName;
+                roleTitle.style.color = roleColor;
+            }
+            if (roleTeam) {
+                if (currentRoleInfo.team === 'mafia') roleTeam.textContent = t('team_mafia');
+                else if (currentRoleInfo.team === 'neutral') roleTeam.textContent = t('team_neutral');
+                else roleTeam.textContent = t('team_town');
+                roleTeam.style.borderColor = roleColor;
+                roleTeam.style.color = roleColor;
+            }
+            if (roleIcon) {
+                const iconName = currentRoleInfo.icon || 'fa-mask';
+                const iconClass = iconName.startsWith('fa-') ? `fa-solid ${iconName}` : `fa-solid fa-${iconName}`;
+                roleIcon.innerHTML = `<i class="${iconClass}"></i>`;
+                roleIcon.style.borderColor = roleColor;
+                roleIcon.style.color = roleColor;
+                roleIcon.style.boxShadow = `0 0 25px ${roleColor}66`;
+            }
+            if (roleDesc) {
+                const abilityText = currentRoleInfo.desc || t('waiting_role_deal');
+                roleDesc.innerHTML = `<strong>${t('ability_label') || 'Qabiliyyət'}:</strong> ${abilityText}`;
+            }
+        } else {
+            card.className = `card-inner theme-${key}`;
+            card.style.removeProperty('--custom-role-color');
+
+            if (roleTitle) {
+                roleTitle.textContent = t('role_' + key) || roleName;
+                roleTitle.style.color = '';
+            }
+            if (roleTeam) {
+                roleTeam.style.borderColor = '';
+                roleTeam.style.color = '';
+                if (key === 'mafia') roleTeam.textContent = t('team_mafia');
+                else if (key === 'don') roleTeam.textContent = t('team_don');
+                else if (key === 'maniac') roleTeam.textContent = t('team_neutral');
+                else roleTeam.textContent = t('team_town');
+            }
+            if (roleIcon) {
+                roleIcon.style.borderColor = '';
+                roleIcon.style.color = '';
+                roleIcon.style.boxShadow = '';
+                const iconClass = roleIcons[key] || 'fa-solid fa-mask';
+                roleIcon.innerHTML = `<i class="${iconClass}"></i>`;
+            }
+            if (roleDesc) {
+                roleDesc.innerHTML = t('desc_' + key) || '';
+            }
         }
 
         const subtext = document.getElementById('mystery-subtext');
@@ -211,13 +253,13 @@
 
     window.addEventListener('languageChanged', () => {
         if (currentRoleKey) {
-            updateRoleDisplay(currentRoleKey);
+            updateRoleDisplay(currentRoleKey, currentRoleInfo);
         }
     });
 
     // Initialize with current role if already set
     {% if player.role %}
-    updateRoleDisplay("{{ player.role }}");
+    updateRoleDisplay("{{ player.role }}", currentRoleInfo);
     {% endif %}
 
     function flipCard() {
@@ -390,9 +432,9 @@
         if (data.players) {
             const me = data.players.find(p => p.name === playerName || p.id === playerId);
             if (me && me.role) {
-                updateRoleDisplay(me.role);
+                updateRoleDisplay(me.role, me.role_info);
                 sounds.playCardDeal();
-                const roleName = t('role_' + me.role.toLowerCase());
+                const roleName = (me.role_info && me.role_info.is_custom) ? (me.role_info.name || me.role) : (t('role_' + me.role.toLowerCase()) || me.role);
                 showToast(`${t('role_assigned_toast')} ${roleName}!`, 'success', 5000);
                 sendPushNotification(t('your_role'), `${t('role_assigned_toast')} ${roleName}!`);
                 if (navigator.vibrate) {

@@ -109,6 +109,22 @@ const TRANSLATIONS = {
         winner_maniac_title: "🟣 MANYAQ QALİB GƏLDİ!",
         winner_maniac_desc: "Tək qatil hər kəsi aradan qaldıraraq sağ qaldı.",
         
+        // Custom Roles Builder
+        add_custom_role_btn: "+ Öz rolunu yarat",
+        custom_role_modal_title: "Yeni Rol Yarat",
+        role_name_label: "Rolun adı",
+        role_name_placeholder: "Məs: Casus, Mühafizəçi, Vəkil...",
+        role_team_label: "Tərəf / Komanda",
+        role_icon_label: "İkonka seçin",
+        role_color_label: "Rəng seçin",
+        role_desc_label: "Qabiliyyət və Təsvir",
+        role_desc_placeholder: "Bu rolun gecə və ya gündüz hansı qabiliyyəti var...",
+        btn_create_role: "Rolı Yarat və Əlavə et",
+        btn_cancel: "İmtina",
+        role_created_toast: "Yeni rol uğurla əlavə edildi!",
+        role_deleted_toast: "Rol silindi.",
+        ability_label: "Qabiliyyət",
+        
         // Roles
         role_mafia: "Mafiya",
         role_don: "Don",
@@ -237,6 +253,22 @@ const TRANSLATIONS = {
         winner_maniac_title: "🟣 ПОБЕДА МАНЬЯКА!",
         winner_maniac_desc: "Одинокий маньяк устранил всех и остался последним выжившим.",
         
+        // Custom Roles Builder
+        add_custom_role_btn: "+ Создать свою роль",
+        custom_role_modal_title: "Конструктор роли",
+        role_name_label: "Название роли",
+        role_name_placeholder: "Напр: Шпион, Телохранитель, Адвокат...",
+        role_team_label: "Команда / Сторона",
+        role_icon_label: "Выберите иконку",
+        role_color_label: "Выберите цвет",
+        role_desc_label: "Способность и описание",
+        role_desc_placeholder: "Что делает эта роль днем или ночью...",
+        btn_create_role: "Создать и добавить",
+        btn_cancel: "Отмена",
+        role_created_toast: "Новая роль успешно создана!",
+        role_deleted_toast: "Роль удалена.",
+        ability_label: "Способность",
+        
         // Roles
         role_mafia: "Мафия",
         role_don: "Дон",
@@ -364,6 +396,22 @@ const TRANSLATIONS = {
         winner_town_desc: "All criminals were investigated and eliminated.",
         winner_maniac_title: "🟣 MANIAC WON!",
         winner_maniac_desc: "The solo maniac outlasted everyone and won.",
+        
+        // Custom Roles Builder
+        add_custom_role_btn: "+ Create Custom Role",
+        custom_role_modal_title: "Create Custom Role",
+        role_name_label: "Role Name",
+        role_name_placeholder: "E.g. Spy, Bodyguard, Lawyer...",
+        role_team_label: "Team / Alignment",
+        role_icon_label: "Choose Icon",
+        role_color_label: "Choose Color",
+        role_desc_label: "Ability & Description",
+        role_desc_placeholder: "What this role does at night or day...",
+        btn_create_role: "Create and Add",
+        btn_cancel: "Cancel",
+        role_created_toast: "New role created successfully!",
+        role_deleted_toast: "Role deleted.",
+        ability_label: "Ability",
         
         // Roles
         role_mafia: "Mafia",

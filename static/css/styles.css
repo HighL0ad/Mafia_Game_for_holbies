@@ -1344,3 +1344,258 @@ body {
     background: rgba(230, 57, 70, 0.15);
     color: var(--color-danger);
 }
+
+/* ==========================================================================
+   CUSTOM ROLES BUILDER MODAL & CONTROLS
+   ========================================================================== */
+
+.btn-add-custom-role {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: rgba(58, 134, 255, 0.12);
+    border: 1px dashed rgba(58, 134, 255, 0.4);
+    color: var(--color-voting);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-add-custom-role:hover {
+    background: rgba(58, 134, 255, 0.25);
+    border-color: var(--color-voting);
+    color: #ffffff;
+}
+
+.custom-roles-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.custom-role-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: var(--transition);
+}
+
+.custom-team-chip {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 999px;
+    letter-spacing: 0.5px;
+}
+
+.team-chip-town {
+    background: rgba(6, 214, 160, 0.15);
+    color: var(--color-success);
+    border: 1px solid rgba(6, 214, 160, 0.3);
+}
+
+.team-chip-mafia {
+    background: rgba(230, 57, 70, 0.15);
+    color: var(--color-danger);
+    border: 1px solid rgba(230, 57, 70, 0.3);
+}
+
+.team-chip-neutral {
+    background: rgba(155, 93, 229, 0.15);
+    color: var(--role-maniac);
+    border: 1px solid rgba(155, 93, 229, 0.3);
+}
+
+.stepper-delete-btn {
+    background: rgba(230, 57, 70, 0.12);
+    border: 1px solid rgba(230, 57, 70, 0.3);
+    color: var(--color-danger);
+    border-radius: var(--radius-sm);
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    margin-left: 6px;
+    font-size: 0.82rem;
+}
+
+.stepper-delete-btn:hover {
+    background: var(--color-danger);
+    color: #ffffff;
+}
+
+/* Custom Role Creator Modal */
+.custom-role-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    box-sizing: border-box;
+}
+
+.custom-role-modal-card {
+    background: #141720;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    max-width: 440px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(58, 134, 255, 0.2);
+}
+
+.modal-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 10px;
+}
+
+.modal-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: var(--transition);
+    padding: 4px;
+}
+
+.modal-close-btn:hover {
+    color: #ffffff;
+}
+
+.custom-role-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+    text-align: left;
+}
+
+.custom-role-field label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.team-selector-chips {
+    display: flex;
+    gap: 8px;
+}
+
+.team-selector-chips .team-chip {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--text-secondary);
+}
+
+.team-selector-chips .team-chip:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.team-selector-chips .team-chip.selected {
+    background: rgba(58, 134, 255, 0.2);
+    border-color: var(--color-voting);
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(58, 134, 255, 0.3);
+}
+
+.icon-selector-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+}
+
+.icon-choice-btn {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.icon-choice-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.icon-choice-btn.selected {
+    background: rgba(58, 134, 255, 0.25);
+    border-color: var(--color-voting);
+    color: var(--color-voting);
+    box-shadow: 0 0 10px rgba(58, 134, 255, 0.4);
+}
+
+.color-palette-grid {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.color-swatch-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.color-swatch-btn:hover {
+    transform: scale(1.15);
+}
+
+.color-swatch-btn.selected {
+    border-color: #ffffff;
+    box-shadow: 0 0 12px currentColor;
+    transform: scale(1.2);
+}
+
+.modal-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}

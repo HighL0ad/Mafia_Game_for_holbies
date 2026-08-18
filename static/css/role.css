@@ -315,6 +315,21 @@
 .theme-villager .role-team-pill { background: rgba(141, 153, 174, 0.2); color: var(--role-villager); border: 1px solid rgba(141, 153, 174, 0.4); }
 .theme-villager .role-name-display { color: var(--role-villager); }
 
+.theme-custom .role-badge-icon { 
+    background: rgba(255, 255, 255, 0.08); 
+    color: var(--custom-role-color, #3a86ff); 
+    border: 2px solid var(--custom-role-color, #3a86ff); 
+    box-shadow: 0 0 25px var(--custom-role-color, #3a86ff); 
+}
+.theme-custom .role-team-pill { 
+    background: rgba(255, 255, 255, 0.08); 
+    color: var(--custom-role-color, #3a86ff); 
+    border: 1px solid var(--custom-role-color, #3a86ff); 
+}
+.theme-custom .role-name-display { 
+    color: var(--custom-role-color, #3a86ff); 
+}
+
 /* Elimination Notice */
 .eliminated-banner {
     width: min(370px, 92vw);

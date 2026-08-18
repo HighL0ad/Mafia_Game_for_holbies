@@ -25,9 +25,21 @@ with app.app_context():
     db.create_all()
     # Ensure newly added columns exist in existing sqlite db
     with db.engine.connect() as conn:
-        for col, col_type, default in [("phase", "VARCHAR(32)", "'day'"), ("day_number", "INTEGER", "1")]:
+        for col, col_type, default in [
+            ("phase", "VARCHAR(32)", "'day'"),
+            ("day_number", "INTEGER", "1"),
+            ("custom_roles", "JSON", "'[]'")
+        ]:
             try:
                 conn.execute(db.text(f"ALTER TABLE rooms ADD COLUMN {col} {col_type} DEFAULT {default}"))
+                conn.commit()
+            except Exception:
+                pass
+        for col, col_type, default in [
+            ("role_info", "JSON", "'{}'")
+        ]:
+            try:
+                conn.execute(db.text(f"ALTER TABLE players ADD COLUMN {col} {col_type} DEFAULT {default}"))
                 conn.commit()
             except Exception:
                 pass

@@ -184,13 +184,18 @@
     <!-- Roles Setup (When waiting) -->
     {% if status == "waiting" %}
     <div class="roles-config-card">
-        <div class="section-header" style="margin-bottom: 6px;">
+        <div class="section-header" style="margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
             <h4 style="font-size: 1rem; font-weight: 700; color: #ffffff;">
                 <i class="fa-solid fa-sliders"></i> <span data-i18n="role_config_title">Rolların tənzimlənməsi</span>
             </h4>
-            <span class="text-muted" style="font-size: 0.82rem;">
-                <span data-i18n="special_roles_label">Xüsusi rollar:</span> <strong id="total-roles" style="color: #ffffff;">{{ total_roles }}</strong> / <span id="player-count-display">{{ player_count }}</span>
-            </span>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <button type="button" class="btn-add-custom-role" onclick="openCustomRoleModal()">
+                    <i class="fa-solid fa-plus"></i> <span data-i18n="add_custom_role_btn">+ Öz rolunu yarat</span>
+                </button>
+                <span class="text-muted" style="font-size: 0.82rem;">
+                    <span data-i18n="special_roles_label">Xüsusi rollar:</span> <strong id="total-roles" style="color: #ffffff;">{{ total_roles }}</strong> / <span id="player-count-display">{{ player_count }}</span>
+                </span>
+            </div>
         </div>
 
         <form id="roles-form" action="{{ url_for('host_bp.start_game', code=code ) }}" method="post">
@@ -272,6 +277,28 @@
                         <button type="button" class="stepper-btn" onclick="changeRole('kamikaze', 1)">+</button>
                     </div>
                 </div>
+            </div>
+
+            <!-- Custom Roles Grid -->
+            <div class="custom-roles-grid" id="custom-roles-grid">
+                {% for cr in custom_roles %}
+                <div class="custom-role-item" id="custom-role-item-{{ cr.id }}" style="border-left: 3px solid {{ cr.color }};">
+                    <span class="role-stepper-label" style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid {{ cr.icon if cr.icon.startswith('fa-') else 'fa-' ~ cr.icon }}" style="color: {{ cr.color }}; font-size: 0.95rem;"></i>
+                        <strong style="color: #ffffff;">{{ cr.name }}</strong>
+                        <span class="custom-team-chip team-chip-{{ cr.team }}">{{ cr.team }}</span>
+                    </span>
+                    <div class="controls-stepper">
+                        <button type="button" class="stepper-btn" onclick="changeRole('{{ cr.id }}', -1)">-</button>
+                        <span id="val-{{ cr.id }}" class="stepper-val">{{ roles_config.get(cr.id, cr.get('count', 1)) }}</span>
+                        <input type="hidden" name="{{ cr.id }}" id="{{ cr.id }}" value="{{ roles_config.get(cr.id, cr.get('count', 1)) }}">
+                        <button type="button" class="stepper-btn" onclick="changeRole('{{ cr.id }}', 1)">+</button>
+                        <button type="button" class="stepper-delete-btn" title="Sil" onclick="deleteCustomRole('{{ cr.id }}')">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
 
             <!-- Villagers Calculation -->
@@ -622,11 +649,11 @@
     }
 
     function calculateTotalRoles() {
-        const roles = ['mafia', 'don', 'doctor', 'sheriff', 'maniac', 'kamikaze'];
         let total = 0;
-        roles.forEach(role => {
-            const el = document.getElementById(role);
-            if (el) total += parseInt(el.value) || 0;
+        document.querySelectorAll('#roles-form input[type="hidden"]').forEach(el => {
+            if (el.id && el.id !== 'villager') {
+                total += parseInt(el.value) || 0;
+            }
         });
         return total;
     }
@@ -788,5 +815,215 @@
         if (btn) btn.querySelector('i').className = 'fa-solid fa-play';
         if (actionText) actionText.textContent = t('timer_start');
     }
+
+    // =========================================================================
+    // Custom Roles Builder Logic
+    // =========================================================================
+    let selectedCustomTeam = 'town';
+    let selectedCustomIcon = 'fa-shield-halved';
+    let selectedCustomColor = '#06d6a0';
+
+    const customIconsList = [
+        'fa-shield-halved', 'fa-wine-glass', 'fa-masks-theater', 'fa-flask-vial',
+        'fa-scale-balanced', 'fa-crosshairs', 'fa-briefcase', 'fa-user-secret',
+        'fa-crown', 'fa-bolt', 'fa-eye', 'fa-dove', 'fa-feather', 'fa-hand-fist'
+    ];
+
+    const customColorsList = [
+        '#06d6a0', '#e63946', '#9b5de5', '#f4a261', '#3a86ff', '#ff006e', '#ffd166', '#4cc9f0'
+    ];
+
+    function openCustomRoleModal() {
+        const modal = document.getElementById('custom-role-modal');
+        if (!modal) return;
+        
+        // Render icon grid
+        const iconGrid = document.getElementById('icon-selector-grid');
+        if (iconGrid) {
+            iconGrid.innerHTML = '';
+            customIconsList.forEach(icon => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `icon-choice-btn ${icon === selectedCustomIcon ? 'selected' : ''}`;
+                btn.innerHTML = `<i class="fa-solid ${icon}"></i>`;
+                btn.onclick = () => selectRoleIcon(icon, btn);
+                iconGrid.appendChild(btn);
+            });
+        }
+
+        // Render color grid
+        const colorGrid = document.getElementById('color-palette-grid');
+        if (colorGrid) {
+            colorGrid.innerHTML = '';
+            customColorsList.forEach(color => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `color-swatch-btn ${color === selectedCustomColor ? 'selected' : ''}`;
+                btn.style.backgroundColor = color;
+                btn.onclick = () => selectRoleColor(color, btn);
+                colorGrid.appendChild(btn);
+            });
+        }
+
+        document.getElementById('custom-role-name').value = '';
+        document.getElementById('custom-role-desc').value = '';
+        modal.style.display = 'flex';
+        sounds.playClick();
+    }
+
+    function closeCustomRoleModal() {
+        const modal = document.getElementById('custom-role-modal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    function selectRoleTeam(team, el) {
+        selectedCustomTeam = team;
+        document.querySelectorAll('.team-selector-chips .team-chip').forEach(c => c.classList.remove('selected'));
+        if (el) el.classList.add('selected');
+        sounds.playClick();
+    }
+
+    function selectRoleIcon(icon, el) {
+        selectedCustomIcon = icon;
+        document.querySelectorAll('.icon-choice-btn').forEach(b => b.classList.remove('selected'));
+        if (el) el.classList.add('selected');
+        sounds.playClick();
+    }
+
+    function selectRoleColor(color, el) {
+        selectedCustomColor = color;
+        document.querySelectorAll('.color-swatch-btn').forEach(b => b.classList.remove('selected'));
+        if (el) el.classList.add('selected');
+        sounds.playClick();
+    }
+
+    function submitCustomRole() {
+        const nameInput = document.getElementById('custom-role-name');
+        const descInput = document.getElementById('custom-role-desc');
+        const name = (nameInput.value || '').trim();
+        const desc = (descInput.value || '').trim();
+
+        if (!name) {
+            showToast((t('role_name_label') || 'Rolun adı') + ' tələb olunur', 'error');
+            return;
+        }
+
+        fetch(`/host/create-custom-role/${roomCode}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: name,
+                team: selectedCustomTeam,
+                icon: selectedCustomIcon,
+                color: selectedCustomColor,
+                desc: desc
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.role) {
+                const cr = data.role;
+                const grid = document.getElementById('custom-roles-grid');
+                if (grid) {
+                    const row = document.createElement('div');
+                    row.className = 'custom-role-item';
+                    row.id = `custom-role-item-${cr.id}`;
+                    row.style.borderLeft = `3px solid ${cr.color}`;
+                    const iconClass = cr.icon.startsWith('fa-') ? `fa-solid ${cr.icon}` : `fa-solid fa-${cr.icon}`;
+                    row.innerHTML = `
+                        <span class="role-stepper-label" style="display: flex; align-items: center; gap: 8px;">
+                            <i class="${iconClass}" style="color: ${cr.color}; font-size: 0.95rem;"></i>
+                            <strong style="color: #ffffff;">${cr.name}</strong>
+                            <span class="custom-team-chip team-chip-${cr.team}">${cr.team}</span>
+                        </span>
+                        <div class="controls-stepper">
+                            <button type="button" class="stepper-btn" onclick="changeRole('${cr.id}', -1)">-</button>
+                            <span id="val-${cr.id}" class="stepper-val">1</span>
+                            <input type="hidden" name="${cr.id}" id="${cr.id}" value="1">
+                            <button type="button" class="stepper-btn" onclick="changeRole('${cr.id}', 1)">+</button>
+                            <button type="button" class="stepper-delete-btn" title="Sil" onclick="deleteCustomRole('${cr.id}')">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    `;
+                    grid.appendChild(row);
+                }
+                closeCustomRoleModal();
+                updateVillagerCount();
+                sounds.playJoin();
+                showToast(t('role_created_toast'), 'success');
+            }
+        });
+    }
+
+    function deleteCustomRole(roleId) {
+        if (!confirm("Rolu silmək istədiyinizdən əminsiniz?")) return;
+        fetch(`/host/delete-custom-role/${roomCode}/${roleId}`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const el = document.getElementById(`custom-role-item-${roleId}`);
+                    if (el) el.remove();
+                    updateVillagerCount();
+                    showToast(t('role_deleted_toast'), 'info');
+                    sounds.playClick();
+                }
+            });
+    }
 </script>
+
+<!-- Custom Role Creator Modal -->
+<div id="custom-role-modal" class="custom-role-modal" style="display: none;">
+    <div class="custom-role-modal-card">
+        <div class="modal-card-header">
+            <h4 style="margin: 0; font-family: var(--font-heading);" data-i18n="custom_role_modal_title">Yeni Rol Yarat</h4>
+            <button type="button" class="modal-close-btn" onclick="closeCustomRoleModal()">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="custom-role-field">
+            <label data-i18n="role_name_label">Rolun adı</label>
+            <input type="text" id="custom-role-name" class="form-input" placeholder="Məs: Casus, Mühafizəçi, Vəkil..." maxlength="32">
+        </div>
+
+        <div class="custom-role-field">
+            <label data-i18n="role_team_label">Tərəf / Komanda</label>
+            <div class="team-selector-chips">
+                <div class="team-chip selected" data-team="town" onclick="selectRoleTeam('town', this)">
+                    <span class="role-indicator" style="background: #06d6a0;"></span>
+                    <span data-i18n="team_town">Dinc şəhər</span>
+                </div>
+                <div class="team-chip" data-team="mafia" onclick="selectRoleTeam('mafia', this)">
+                    <span class="role-indicator" style="background: #e63946;"></span>
+                    <span data-i18n="team_mafia">Mafiya</span>
+                </div>
+                <div class="team-chip" data-team="neutral" onclick="selectRoleTeam('neutral', this)">
+                    <span class="role-indicator" style="background: #9b5de5;"></span>
+                    <span data-i18n="team_neutral">Tək qatil</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="custom-role-field">
+            <label data-i18n="role_icon_label">İkonka seçin</label>
+            <div class="icon-selector-grid" id="icon-selector-grid"></div>
+        </div>
+
+        <div class="custom-role-field">
+            <label data-i18n="role_color_label">Rəng seçin</label>
+            <div class="color-palette-grid" id="color-palette-grid"></div>
+        </div>
+
+        <div class="custom-role-field">
+            <label data-i18n="role_desc_label">Qabiliyyət və Təsvir</label>
+            <textarea id="custom-role-desc" class="form-input" rows="2" placeholder="Bu rolun gecə və ya gündüz hansı qabiliyyəti var..."></textarea>
+        </div>
+
+        <div class="modal-card-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeCustomRoleModal()" data-i18n="btn_cancel">İmtina</button>
+            <button type="button" class="btn btn-primary" onclick="submitCustomRole()" data-i18n="btn_create_role">Rolı Yarat və Əlavə et</button>
+        </div>
+    </div>
+</div>
 {% endblock %}

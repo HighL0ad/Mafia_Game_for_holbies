@@ -39,6 +39,7 @@ class Room(db.Model):
     phase = db.Column(db.String(32), default="day")  # day, voting, night
     day_number = db.Column(db.Integer, default=1)
     roles_config = db.Column(db.JSON, default=dict)
+    custom_roles = db.Column(db.JSON, default=list)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     players = db.relationship(
@@ -57,6 +58,7 @@ class Room(db.Model):
             "phase": self.phase or "day",
             "day_number": self.day_number or 1,
             "roles_config": self.roles_config or {},
+            "custom_roles": self.custom_roles or [],
             "players": [p.to_dict() for p in self.players],
             "player_count": len(self.players)
         }
@@ -68,7 +70,8 @@ class Player(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     room_code = db.Column(db.String(32), db.ForeignKey("rooms.host_code"), nullable=False, index=True)
     name = db.Column(db.String(64), nullable=False)
-    role = db.Column(db.String(32), nullable=True)
+    role = db.Column(db.String(64), nullable=True)
+    role_info = db.Column(db.JSON, default=dict)
     is_alive = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -78,6 +81,7 @@ class Player(db.Model):
             "player_id": str(self.id),
             "name": self.name,
             "role": self.role,
+            "role_info": self.role_info or {},
             "is_alive": self.is_alive,
             "room_code": self.room_code
         }

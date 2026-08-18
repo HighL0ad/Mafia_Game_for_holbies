@@ -1,3 +1,4 @@
+import uuid
 from flask import jsonify, redirect, render_template, request, url_for
 from flask.blueprints import Blueprint
 
@@ -19,9 +20,13 @@ def calculate_game_stats(players):
 
     for p in alive_players:
         role = (p.role or "").lower()
-        if role in ("mafia", "don"):
+        team = ""
+        if hasattr(p, "role_info") and isinstance(p.role_info, dict):
+            team = p.role_info.get("team", "")
+
+        if team == "mafia" or role in ("mafia", "don"):
             mafia_count += 1
-        elif role == "maniac":
+        elif team == "neutral" or role == "maniac":
             maniac_count += 1
         else:
             town_count += 1
@@ -73,9 +78,56 @@ def host(code: str):
         day_number=room.day_number or 1,
         player_count=player_count,
         roles_config=roles_config,
+        custom_roles=room.custom_roles or [],
         total_roles=total_special,
         stats=stats
     )
+
+
+@host_bp.post("/create-custom-role/<code>")
+def create_custom_role(code: str):
+    room = Room.query.filter_by(host_code=code).first_or_404()
+    data = request.get_json(force=True) if request.is_json else request.form.to_dict()
+    name = (data.get("name") or "").strip()
+    if not name:
+        return jsonify({"error": "Role name is required"}), 400
+
+    role_id = f"custom_{uuid.uuid4().hex[:8]}"
+    new_role = {
+        "id": role_id,
+        "name": name,
+        "team": data.get("team", "town"),
+        "icon": data.get("icon", "fa-mask"),
+        "color": data.get("color", "#3a86ff"),
+        "desc": (data.get("desc") or "").strip(),
+        "count": 1
+    }
+
+    current_custom = list(room.custom_roles or [])
+    current_custom.append(new_role)
+    room.custom_roles = current_custom
+
+    cfg = dict(room.roles_config or {})
+    cfg[role_id] = 1
+    room.roles_config = cfg
+
+    db.session.commit()
+    return jsonify({"success": True, "role": new_role, "roles_config": room.roles_config})
+
+
+@host_bp.post("/delete-custom-role/<code>/<role_id>")
+def delete_custom_role(code: str, role_id: str):
+    room = Room.query.filter_by(host_code=code).first_or_404()
+    current_custom = [r for r in (room.custom_roles or []) if r.get("id") != role_id]
+    room.custom_roles = current_custom
+
+    cfg = dict(room.roles_config or {})
+    if role_id in cfg:
+        del cfg[role_id]
+    room.roles_config = cfg
+
+    db.session.commit()
+    return jsonify({"success": True, "roles_config": room.roles_config})
 
 
 @host_bp.post("/start-game/<code>")
@@ -96,17 +148,22 @@ def start_game(code: str):
         "villager": int(request.form.get("villager", 0))
     }
 
+    for cr in (room.custom_roles or []):
+        if "id" in cr:
+            roles_config[cr["id"]] = int(request.form.get(cr["id"], 0))
+
     total_roles = sum(roles_config.values())
     if total_roles != len(players):
         return f"Количество ролей ({total_roles}) должно равняться количеству игроков ({len(players)})", 400
 
     players_dict_list = [{"id": p.id, "name": p.name, "role": None} for p in players]
-    assign_roles(players_dict_list, roles_config)
+    assign_roles(players_dict_list, roles_config, room.custom_roles)
 
     for p_dict in players_dict_list:
         p = Player.query.get(p_dict["id"])
         if p:
             p.role = p_dict["role"]
+            p.role_info = p_dict.get("role_info", {})
             p.is_alive = True
 
     room.status = "started"
