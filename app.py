@@ -101,6 +101,11 @@ def handle_submit_vote(data):
     room = str(data.get("room", ""))
     voter_id = data.get("voter_id")
     target_id = data.get("target_id")
+    
+    # Self-voting is not allowed in Mafia rules
+    if voter_id and target_id and voter_id == target_id:
+        return
+
     if room and room in active_voting_sessions and active_voting_sessions[room]["open"]:
         active_voting_sessions[room]["votes"][voter_id] = target_id
         

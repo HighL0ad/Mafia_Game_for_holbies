@@ -298,23 +298,25 @@
         if (descEl) descEl.textContent = t('voting_overlay_subtitle');
         
         list.innerHTML = '';
-        data.candidates.forEach(c => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'vote-btn';
-            btn.dataset.id = c.id;
-            btn.innerHTML = `
-                <div class="vote-btn-left">
-                    <div class="vote-avatar-icon">${c.name.charAt(0).toUpperCase()}</div>
-                    <span>${c.name}</span>
-                </div>
-                <div class="vote-radio-icon">
-                    <i class="fa-regular fa-circle"></i>
-                </div>
-            `;
-            btn.onclick = function() { castVote(c.id, this); };
-            list.appendChild(btn);
-        });
+        data.candidates
+            .filter(c => c.id !== playerId)
+            .forEach(c => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'vote-btn';
+                btn.dataset.id = c.id;
+                btn.innerHTML = `
+                    <div class="vote-btn-left">
+                        <div class="vote-avatar-icon">${c.name.charAt(0).toUpperCase()}</div>
+                        <span>${c.name}</span>
+                    </div>
+                    <div class="vote-radio-icon">
+                        <i class="fa-regular fa-circle"></i>
+                    </div>
+                `;
+                btn.onclick = function() { castVote(c.id, this); };
+                list.appendChild(btn);
+            });
 
         // Reset abstain button
         const abstainBtn = document.getElementById('btn-abstain');
@@ -359,6 +361,10 @@
 
     function castVote(targetId, btnEl) {
         if (!votingActive) return;
+        if (targetId === playerId) {
+            showToast(t('cannot_vote_self') || 'Özünüzə səs verə bilməzsiniz!', 'warning');
+            return;
+        }
         myCurrentVote = targetId;
         sounds.playClick();
 

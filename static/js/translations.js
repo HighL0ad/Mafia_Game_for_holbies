@@ -88,6 +88,7 @@ const TRANSLATIONS = {
         btn_pardon: "Bağışla (Oyunda saxla)",
         btn_skip_voting: "Keç (Heç kim çıxarılmadı)",
         btn_revote: "Yenidən səsvermə",
+        cannot_vote_self: "Özünüzə səs verə bilməzsiniz!",
         pardon_toast: "Oyunçu bağışlandı və oyunda qaldı!",
         skip_voting_toast: "Səsvermə keçildi — heç kim çıxarılmadı.",
         
@@ -232,6 +233,7 @@ const TRANSLATIONS = {
         btn_pardon: "Помиловать (Оставить в игре)",
         btn_skip_voting: "Пропустить (Никто не выбыл)",
         btn_revote: "Переголосовать",
+        cannot_vote_self: "Нельзя голосовать против самого себя!",
         pardon_toast: "Игрок помилован и остался в игре!",
         skip_voting_toast: "Голосование пропущено — никто не выбыл.",
         
@@ -376,6 +378,7 @@ const TRANSLATIONS = {
         btn_pardon: "Pardon (Keep in game)",
         btn_skip_voting: "Skip (No one eliminated)",
         btn_revote: "Revote",
+        cannot_vote_self: "You cannot vote for yourself!",
         pardon_toast: "Player pardoned and remains in the game!",
         skip_voting_toast: "Voting skipped — no one was eliminated.",
         
