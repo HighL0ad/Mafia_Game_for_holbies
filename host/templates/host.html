@@ -149,8 +149,8 @@
                 <span data-i18n="host_night_title">Gecə Fəaliyyəti</span>
             </h4>
         </div>
-        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(230, 57, 70, 0.08); border: 1px dashed rgba(230, 57, 70, 0.35); border-radius: var(--radius-md); padding: 12px 16px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
+        <div class="host-night-target-row" style="background: rgba(230, 57, 70, 0.08); border: 1px dashed rgba(230, 57, 70, 0.35); border-radius: var(--radius-md); padding: 12px 16px;">
+            <div class="host-night-target-label">
                 <i class="fa-solid fa-crosshairs" style="color: var(--role-mafia); font-size: 1.1rem;"></i>
                 <span style="font-weight: 600; color: var(--text-secondary);" data-i18n="mafia_target_label">Mafiyanın hədəfi</span>
             </div>
@@ -193,6 +193,8 @@
             {% if status == "started" %}
             <button type="button" 
                     class="status-toggle-btn {{ 'alive' if item.is_alive else 'dead' }}"
+                    aria-label="{{ item.name }}: oyun statusunu dəyiş"
+                    title="{{ item.name }}: oyun statusunu dəyiş"
                     onclick="togglePlayerStatus('{{ code }}', {{ item.id }})">
                 <i class="fa-solid {{ 'fa-heart-pulse' if item.is_alive else 'fa-skull' }}"></i>
             </button>
@@ -231,10 +233,10 @@
                         <span class="role-indicator" style="background: var(--role-mafia);"></span> <span data-i18n="role_mafia">Mafiya</span>
                     </span>
                     <div class="controls-stepper">
-                        <button type="button" class="stepper-btn" onclick="changeRole('mafia', -1)">-</button>
+                        <button type="button" class="stepper-btn" aria-label="Mafiya sayını azalt" onclick="changeRole('mafia', -1)">-</button>
                         <span id="val-mafia" class="stepper-val">{{ roles_config.get('mafia', 0) }}</span>
                         <input type="hidden" name="mafia" id="mafia" value="{{ roles_config.get('mafia', 0) }}">
-                        <button type="button" class="stepper-btn" onclick="changeRole('mafia', 1)">+</button>
+                        <button type="button" class="stepper-btn" aria-label="Mafiya sayını artır" onclick="changeRole('mafia', 1)">+</button>
                     </div>
                 </div>
 
@@ -244,10 +246,10 @@
                         <span class="role-indicator" style="background: var(--role-don);"></span> <span data-i18n="role_don">Don</span>
                     </span>
                     <div class="controls-stepper">
-                        <button type="button" class="stepper-btn" onclick="changeRole('don', -1)">-</button>
+                        <button type="button" class="stepper-btn" aria-label="Don sayını azalt" onclick="changeRole('don', -1)">-</button>
                         <span id="val-don" class="stepper-val">{{ roles_config.get('don', 0) }}</span>
                         <input type="hidden" name="don" id="don" value="{{ roles_config.get('don', 0) }}">
-                        <button type="button" class="stepper-btn" onclick="changeRole('don', 1)">+</button>
+                        <button type="button" class="stepper-btn" aria-label="Don sayını artır" onclick="changeRole('don', 1)">+</button>
                     </div>
                 </div>
 
@@ -257,10 +259,10 @@
                         <span class="role-indicator" style="background: var(--role-doctor);"></span> <span data-i18n="role_doctor">Həkim</span>
                     </span>
                     <div class="controls-stepper">
-                        <button type="button" class="stepper-btn" onclick="changeRole('doctor', -1)">-</button>
+                        <button type="button" class="stepper-btn" aria-label="Həkim sayını azalt" onclick="changeRole('doctor', -1)">-</button>
                         <span id="val-doctor" class="stepper-val">{{ roles_config.get('doctor', 0) }}</span>
                         <input type="hidden" name="doctor" id="doctor" value="{{ roles_config.get('doctor', 0) }}">
-                        <button type="button" class="stepper-btn" onclick="changeRole('doctor', 1)">+</button>
+                        <button type="button" class="stepper-btn" aria-label="Həkim sayını artır" onclick="changeRole('doctor', 1)">+</button>
                     </div>
                 </div>
 
@@ -270,10 +272,10 @@
                         <span class="role-indicator" style="background: var(--role-sheriff);"></span> <span data-i18n="role_sheriff">Komissar</span>
                     </span>
                     <div class="controls-stepper">
-                        <button type="button" class="stepper-btn" onclick="changeRole('sheriff', -1)">-</button>
+                        <button type="button" class="stepper-btn" aria-label="Şerif sayını azalt" onclick="changeRole('sheriff', -1)">-</button>
                         <span id="val-sheriff" class="stepper-val">{{ roles_config.get('sheriff', 0) }}</span>
                         <input type="hidden" name="sheriff" id="sheriff" value="{{ roles_config.get('sheriff', 0) }}">
-                        <button type="button" class="stepper-btn" onclick="changeRole('sheriff', 1)">+</button>
+                        <button type="button" class="stepper-btn" aria-label="Şerif sayını artır" onclick="changeRole('sheriff', 1)">+</button>
                     </div>
                 </div>
 
@@ -283,10 +285,10 @@
                         <span class="role-indicator" style="background: var(--role-maniac);"></span> <span data-i18n="role_maniac">Manyak</span>
                     </span>
                     <div class="controls-stepper">
-                        <button type="button" class="stepper-btn" onclick="changeRole('maniac', -1)">-</button>
+                        <button type="button" class="stepper-btn" aria-label="Manyak sayını azalt" onclick="changeRole('maniac', -1)">-</button>
                         <span id="val-maniac" class="stepper-val">{{ roles_config.get('maniac', 0) }}</span>
                         <input type="hidden" name="maniac" id="maniac" value="{{ roles_config.get('maniac', 0) }}">
-                        <button type="button" class="stepper-btn" onclick="changeRole('maniac', 1)">+</button>
+                        <button type="button" class="stepper-btn" aria-label="Manyak sayını artır" onclick="changeRole('maniac', 1)">+</button>
                     </div>
                 </div>
 
@@ -296,10 +298,10 @@
                         <span class="role-indicator" style="background: var(--role-kamikaze);"></span> <span data-i18n="role_kamikaze">Kamikadze</span>
                     </span>
                     <div class="controls-stepper">
-                        <button type="button" class="stepper-btn" onclick="changeRole('kamikaze', -1)">-</button>
+                        <button type="button" class="stepper-btn" aria-label="Kamikadze sayını azalt" onclick="changeRole('kamikaze', -1)">-</button>
                         <span id="val-kamikaze" class="stepper-val">{{ roles_config.get('kamikaze', 0) }}</span>
                         <input type="hidden" name="kamikaze" id="kamikaze" value="{{ roles_config.get('kamikaze', 0) }}">
-                        <button type="button" class="stepper-btn" onclick="changeRole('kamikaze', 1)">+</button>
+                        <button type="button" class="stepper-btn" aria-label="Kamikadze sayını artır" onclick="changeRole('kamikaze', 1)">+</button>
                     </div>
                 </div>
 
@@ -311,7 +313,7 @@
                         <span>{{ cr.name }}</span>
                     </span>
                     <div class="controls-stepper">
-                        <button type="button" class="stepper-btn" id="btn-minus-{{ cr.id }}" onclick="handleCustomRoleMinus('{{ cr.id }}')">
+                        <button type="button" class="stepper-btn" id="btn-minus-{{ cr.id }}" aria-label="Xüsusi rol sayını azalt və ya rolu sil" onclick="handleCustomRoleMinus('{{ cr.id }}')">
                             {% if roles_config.get(cr.id, cr.get('count', 1)) == 0 %}
                             <i class="fa-solid fa-trash-can" style="color: var(--color-danger); font-size: 0.82rem;"></i>
                             {% else %}
@@ -320,7 +322,7 @@
                         </button>
                         <span id="val-{{ cr.id }}" class="stepper-val">{{ roles_config.get(cr.id, cr.get('count', 1)) }}</span>
                         <input type="hidden" name="{{ cr.id }}" id="{{ cr.id }}" value="{{ roles_config.get(cr.id, cr.get('count', 1)) }}">
-                        <button type="button" class="stepper-btn" onclick="changeRole('{{ cr.id }}', 1)">+</button>
+                        <button type="button" class="stepper-btn" aria-label="Xüsusi rol sayını artır" onclick="changeRole('{{ cr.id }}', 1)">+</button>
                     </div>
                 </div>
                 {% endfor %}
@@ -811,7 +813,7 @@
                     const aliveClass = player.is_alive ? 'alive' : 'dead';
                     const iconClass = player.is_alive ? 'fa-heart-pulse' : 'fa-skull';
                     statusBtn = `
-                        <button type="button" class="status-toggle-btn ${aliveClass}" onclick="togglePlayerStatus('${roomCode}', ${player.id})">
+                        <button type="button" class="status-toggle-btn ${aliveClass}" aria-label="Oyunçu statusunu dəyiş" title="Oyunçu statusunu dəyiş" onclick="togglePlayerStatus('${roomCode}', ${player.id})">
                             <i class="fa-solid ${iconClass}"></i>
                         </button>
                     `;
@@ -1164,10 +1166,10 @@
                             <span>${cr.name}</span>
                         </span>
                         <div class="controls-stepper">
-                            <button type="button" class="stepper-btn" id="btn-minus-${cr.id}" onclick="handleCustomRoleMinus('${cr.id}')"><i class="fa-solid fa-trash-can" style="color: var(--color-danger); font-size: 0.82rem;"></i></button>
+                            <button type="button" class="stepper-btn" id="btn-minus-${cr.id}" aria-label="Xüsusi rol sayını azalt və ya rolu sil" onclick="handleCustomRoleMinus('${cr.id}')"><i class="fa-solid fa-trash-can" style="color: var(--color-danger); font-size: 0.82rem;"></i></button>
                             <span id="val-${cr.id}" class="stepper-val">0</span>
                             <input type="hidden" name="${cr.id}" id="${cr.id}" value="0">
-                            <button type="button" class="stepper-btn" onclick="changeRole('${cr.id}', 1)">+</button>
+                            <button type="button" class="stepper-btn" aria-label="Xüsusi rol sayını artır" onclick="changeRole('${cr.id}', 1)">+</button>
                         </div>
                     `;
                     grid.appendChild(row);

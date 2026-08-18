@@ -22,6 +22,7 @@
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    gap: 12px;
 }
 
 .player-nickname {
@@ -31,6 +32,15 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    min-width: 0;
+    flex: 1;
+}
+
+.player-nickname span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .player-room-tag {
@@ -38,6 +48,10 @@
     color: var(--text-muted);
     font-family: var(--font-heading);
     letter-spacing: 1px;
+    flex-shrink: 0;
+    max-width: 48%;
+    overflow-wrap: anywhere;
+    text-align: right;
 }
 
 /* 3D Perspective Card Container with Perfect 1:1.45 Playing Card Proportions */
@@ -45,7 +59,6 @@
     perspective: 1200px;
     width: min(330px, 86vw);
     aspect-ratio: 1 / 1.45;
-    max-height: 62vh;
     height: auto;
     user-select: none;
     -webkit-user-select: none;
@@ -278,6 +291,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
+    min-height: 44px;
 }
 
 .hide-role-btn:hover {
@@ -362,7 +376,6 @@
     .card-scene {
         width: min(310px, 84vw);
         aspect-ratio: 1 / 1.45;
-        max-height: 58vh;
         height: auto;
         margin: 0 auto 10px auto;
     }
@@ -402,7 +415,116 @@
         overflow-y: auto;
     }
     .hide-role-btn {
-        padding: 8px 14px;
+        padding: 10px 14px;
         font-size: 0.82rem;
+    }
+}
+
+/* A purpose-built horizontal card avoids squashing the portrait proportions. */
+@media (orientation: landscape) and (max-height: 600px) {
+    .player-top-bar {
+        width: min(520px, 72vw);
+        margin-bottom: 10px;
+        padding: 8px 14px;
+    }
+
+    .card-scene {
+        width: min(520px, 72vw);
+        height: min(250px, 62dvh);
+        max-height: none;
+        aspect-ratio: auto;
+        margin-bottom: 10px;
+    }
+
+    .card-face {
+        padding: 14px 18px;
+    }
+
+    .card-front-content {
+        display: grid;
+        grid-template-columns: 96px minmax(0, 1fr);
+        grid-template-rows: 1fr auto;
+        column-gap: 18px;
+        row-gap: 10px;
+    }
+
+    .mystery-seal {
+        grid-column: 1;
+        grid-row: 1 / 3;
+        width: 72px;
+        height: 72px;
+        margin: auto;
+        font-size: 32px;
+        flex-shrink: 0;
+    }
+
+    .card-front-content > div:nth-child(2) {
+        grid-column: 2;
+        grid-row: 1;
+        align-self: end;
+    }
+
+    .mystery-title {
+        font-size: 1.45rem;
+        margin-top: 0;
+    }
+
+    .card-front-content .tap-hint {
+        grid-column: 2;
+        grid-row: 2;
+        align-self: start;
+        min-height: 44px;
+        padding: 8px 14px;
+    }
+
+    .card-back {
+        display: grid;
+        grid-template-columns: minmax(120px, 0.85fr) minmax(0, 1.15fr);
+        grid-template-rows: minmax(0, 1fr) auto;
+        column-gap: 16px;
+        row-gap: 10px;
+    }
+
+    .card-back-header {
+        grid-column: 1;
+        grid-row: 1 / 3;
+        align-self: center;
+    }
+
+    .role-badge-icon {
+        width: 56px;
+        height: 56px;
+        margin-bottom: 7px;
+        font-size: 26px;
+    }
+
+    .role-team-pill {
+        margin-bottom: 7px;
+        padding: 4px 10px;
+        font-size: 0.68rem;
+    }
+
+    .role-name-display {
+        margin-bottom: 0;
+        font-size: 1.35rem;
+    }
+
+    .role-desc-box {
+        grid-column: 2;
+        grid-row: 1;
+        min-height: 0;
+        max-height: none;
+        margin: 0;
+        padding: 10px 12px;
+        overflow-y: auto;
+        font-size: 0.78rem;
+        line-height: 1.35;
+    }
+
+    .hide-role-btn {
+        grid-column: 2;
+        grid-row: 2;
+        min-height: 44px;
+        padding: 8px 12px;
     }
 }

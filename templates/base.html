@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#0d0f14">
     <meta name="description" content="Mafiya Onlayn / Mafia Game / Мафия онлайн">
     <title>{% block title %}Mafia Game{% endblock %}</title>
@@ -33,13 +33,13 @@
     <!-- Fixed Top Right Navigation Bar with Audio & Language Switcher -->
     <header class="top-nav-bar">
         <div class="nav-controls-group">
-            <button type="button" class="audio-btn" id="sound-toggle-btn" onclick="sounds.toggle()" title="Səs">
+            <button type="button" class="audio-btn" id="sound-toggle-btn" onclick="sounds.toggle()" title="Səs" aria-label="Səsi aç və ya söndür">
                 <i class="fa-solid fa-volume-high"></i>
             </button>
             <div class="lang-selector">
-                <button type="button" class="lang-btn" data-lang="az" onclick="setLanguage('az')">AZ</button>
-                <button type="button" class="lang-btn" data-lang="ru" onclick="setLanguage('ru')">RU</button>
-                <button type="button" class="lang-btn" data-lang="en" onclick="setLanguage('en')">EN</button>
+                <button type="button" class="lang-btn" data-lang="az" onclick="setLanguage('az')" aria-label="Azərbaycan dili">AZ</button>
+                <button type="button" class="lang-btn" data-lang="ru" onclick="setLanguage('ru')" aria-label="Русский язык">RU</button>
+                <button type="button" class="lang-btn" data-lang="en" onclick="setLanguage('en')" aria-label="English language">EN</button>
             </div>
         </div>
     </header>
