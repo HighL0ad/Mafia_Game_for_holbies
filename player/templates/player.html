@@ -122,12 +122,13 @@
     </button>
 </div>
 
-<!-- Procedural gunshot / shattered screen effect shown only to the night victim. -->
+<!-- Hybrid WebGL gunshot / shattered screen effect shown only to the night victim. -->
 <div id="bullet-glass-shatter-overlay" class="bullet-glass-shatter-overlay" aria-hidden="true" hidden>
     <div class="glass-fx-stage">
         <div class="glass-scene-dim"></div>
         <div class="glass-shot-flash"></div>
         <div class="bullet-tracer"></div>
+        <canvas id="glass-refraction-canvas" class="glass-refraction-canvas"></canvas>
         <canvas id="glass-cracks-canvas" class="glass-cracks-canvas"></canvas>
         <div id="glass-shards-container" class="glass-shards-container"></div>
         <div id="glass-particles-container" class="glass-particles-container"></div>
@@ -165,7 +166,8 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/glass-shot.js') }}?v=2.0.0"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="{{ url_for('static', filename='js/glass-shot.js') }}?v=3.0.0"></script>
 <script>
     const socket = io();
     const playerName = "{{ player.name }}";
@@ -558,6 +560,11 @@
 
         if (data.all_players) {
             latestPlayersList = data.all_players;
+        }
+
+        // Refresh the clean role-screen texture before the night shroud is used.
+        if (data.phase === 'night' && isPlayerAlive && window.prepareGlassShotTexture) {
+            window.prepareGlassShotTexture(true);
         }
 
         // Night victim resolution & Gunshot sound & Broken Glass FX

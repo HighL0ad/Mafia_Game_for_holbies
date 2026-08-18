@@ -2073,6 +2073,7 @@ body {
 .glass-fx-stage,
 .glass-scene-dim,
 .glass-shot-flash,
+.glass-refraction-canvas,
 .glass-cracks-canvas,
 .glass-shards-container,
 .glass-particles-container,
@@ -2133,11 +2134,27 @@ body {
     animation: bulletTracer 105ms ease-out forwards;
 }
 
+.glass-refraction-canvas,
 .glass-cracks-canvas {
     z-index: 3;
     width: 100%;
     height: 100%;
+}
+
+.glass-refraction-canvas {
+    opacity: 0;
+}
+
+.glass-cracks-canvas {
     filter: drop-shadow(0 0 2px rgba(188, 229, 255, 0.55));
+}
+
+.bullet-glass-shatter-overlay.webgl-glass .glass-refraction-canvas {
+    opacity: 1;
+}
+
+.bullet-glass-shatter-overlay.webgl-glass .glass-cracks-canvas {
+    opacity: 0;
 }
 
 .glass-shards-container,

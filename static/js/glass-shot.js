@@ -1,16 +1,343 @@
 /*
- * Procedural shattered-glass scene used when the Mafia's night victim is hit.
- * Cracks are generated for the current viewport so the effect stays sharp on
- * phones and does not repeat the same artificial pattern on every shot.
+ * Hybrid WebGL / Canvas shattered-glass scene used when the Mafia's night
+ * victim is hit. WebGL refracts a cached image of the live interface while a
+ * procedural Canvas renderer remains available as a no-delay fallback.
  */
 (function () {
     'use strict';
 
     let cleanupTimer = null;
     let fractureFrame = null;
+    let webglFrame = null;
+    let webglRenderer = null;
+    let cachedScene = null;
+    let cachedScenePromise = null;
+    let cachedSceneSize = null;
 
     const random = (min, max) => min + Math.random() * (max - min);
     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+    const vertexShaderSource = `
+        attribute vec2 a_position;
+        varying vec2 v_uv;
+
+        void main() {
+            v_uv = a_position * 0.5 + 0.5;
+            gl_Position = vec4(a_position, 0.0, 1.0);
+        }
+    `;
+
+    // The shader is intentionally self-contained: polar cells create the
+    // fracture topology, while each cell receives a slightly different UV
+    // offset and chromatic split to imitate refraction through uneven glass.
+    const fragmentShaderSource = `
+        precision highp float;
+
+        uniform sampler2D u_scene;
+        uniform vec2 u_resolution;
+        uniform vec2 u_impact;
+        uniform float u_progress;
+        uniform float u_seed;
+        varying vec2 v_uv;
+
+        const float PI = 3.141592653589793;
+        const float TAU = 6.283185307179586;
+
+        float hash11(float value) {
+            return fract(sin(value * 127.1 + u_seed * 311.7) * 43758.5453123);
+        }
+
+        float hash21(vec2 value) {
+            return fract(sin(dot(value, vec2(127.1, 311.7)) + u_seed * 91.3) * 43758.5453123);
+        }
+
+        float valueNoise(vec2 point) {
+            vec2 cell = floor(point);
+            vec2 local = fract(point);
+            local = local * local * (3.0 - 2.0 * local);
+
+            return mix(
+                mix(hash21(cell), hash21(cell + vec2(1.0, 0.0)), local.x),
+                mix(hash21(cell + vec2(0.0, 1.0)), hash21(cell + vec2(1.0, 1.0)), local.x),
+                local.y
+            );
+        }
+
+        void main() {
+            vec2 uv = v_uv;
+            float aspect = u_resolution.x / max(u_resolution.y, 1.0);
+            vec2 local = uv - u_impact;
+            local.x *= aspect;
+
+            float radius = length(local);
+            float angle = atan(local.y, local.x);
+            float angle01 = (angle + PI) / TAU;
+            float rayCount = 14.0 + floor(u_seed * 5.0);
+            float angularWarp = (valueNoise(vec2(angle01 * 8.0, radius * 7.0)) - 0.5) * 0.32;
+
+            float spokeCoordinate = angle01 * rayCount
+                + sin(radius * 19.0 + u_seed * 8.0) * 0.055
+                + angularWarp * min(radius * 1.7, 1.0);
+            float spokeCell = floor(spokeCoordinate);
+            float spokeFraction = fract(spokeCoordinate);
+            float spokeDistance = min(spokeFraction, 1.0 - spokeFraction);
+            float spokeWidth = 0.0025 + radius * 0.0025;
+            float spoke = 1.0 - smoothstep(spokeWidth, spokeWidth + 0.0065, spokeDistance);
+            spoke *= step(0.09, hash11(spokeCell + 3.0));
+
+            float ringCoordinate = radius * (10.4 + hash11(spokeCell) * 2.1)
+                + (hash11(spokeCell + 27.0) - 0.5) * 0.72
+                + sin(angle * (3.0 + floor(hash11(spokeCell + 8.0) * 3.0)) + u_seed * 9.0) * 0.20
+                + (valueNoise(vec2(angle01 * 17.0, radius * 13.0)) - 0.5) * 0.42;
+            float ringCell = floor(ringCoordinate);
+            float ringFraction = fract(ringCoordinate);
+            float ringDistance = min(ringFraction, 1.0 - ringFraction);
+            float ring = 1.0 - smoothstep(0.004, 0.014, ringDistance);
+            ring *= step(0.43, hash21(vec2(spokeCell, ringCell)));
+            ring *= smoothstep(0.025, 0.075, radius);
+
+            float fineCoordinate = angle01 * (rayCount * 2.0 + 3.0)
+                + sin(radius * 27.0 + spokeCell) * 0.11;
+            float fineFraction = fract(fineCoordinate);
+            float fineDistance = min(fineFraction, 1.0 - fineFraction);
+            float fine = (1.0 - smoothstep(0.002, 0.007, fineDistance));
+            fine *= step(0.58, hash11(floor(fineCoordinate) + 17.0));
+            fine *= smoothstep(0.10, 0.22, radius) * 0.58;
+
+            float chipCoordinate = angle01 * 31.0 + sin(radius * 73.0) * 0.10;
+            float chipDistance = min(fract(chipCoordinate), 1.0 - fract(chipCoordinate));
+            float chip = (1.0 - smoothstep(0.008, 0.022, chipDistance));
+            chip *= 1.0 - smoothstep(0.055, 0.14, radius);
+
+            float revealRadius = u_progress * 1.34;
+            float reveal = 1.0 - smoothstep(revealRadius, revealRadius + 0.075, radius);
+            float crack = max(max(spoke, ring), max(fine, chip)) * reveal;
+
+            vec2 cellId = vec2(spokeCell, ringCell);
+            float cellRandom = hash21(cellId);
+            vec2 radial = normalize(local + vec2(0.00001));
+            vec2 tangent = vec2(-radial.y, radial.x);
+            float displacement = (cellRandom - 0.5) * 0.009;
+            displacement *= reveal * (1.0 - smoothstep(0.72, 1.24, radius));
+            vec2 offset = tangent * displacement;
+            offset.x /= aspect;
+            offset += radial * ((hash21(cellId + 4.7) - 0.5) * 0.0045 * reveal);
+
+            vec2 sampleUv = clamp(uv + offset, vec2(0.002), vec2(0.998));
+            vec3 sceneColor;
+            sceneColor.r = texture2D(u_scene, clamp(sampleUv + offset * 0.22, 0.002, 0.998)).r;
+            sceneColor.g = texture2D(u_scene, sampleUv).g;
+            sceneColor.b = texture2D(u_scene, clamp(sampleUv - offset * 0.18, 0.002, 0.998)).b;
+
+            float facetLight = (cellRandom - 0.5) * 0.10 * reveal;
+            sceneColor += vec3(0.67, 0.84, 0.96) * max(facetLight, 0.0);
+            sceneColor *= 1.0 + min(facetLight, 0.0);
+
+            float crackCore = smoothstep(0.58, 0.96, crack);
+            float crackGlow = smoothstep(0.16, 0.74, crack);
+            sceneColor *= 1.0 - crackCore * 0.38;
+            sceneColor += vec3(0.76, 0.90, 1.0) * crackGlow * 0.72;
+
+            float impactBloom = (1.0 - smoothstep(0.0, 0.16, radius)) * (1.0 - u_progress);
+            sceneColor += vec3(1.0, 0.91, 0.70) * impactBloom * 0.64;
+            gl_FragColor = vec4(sceneColor, 1.0);
+        }
+    `;
+
+    function compileShader(gl, type, source) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            console.warn('Glass FX shader compilation failed:', gl.getShaderInfoLog(shader));
+            gl.deleteShader(shader);
+            return null;
+        }
+        return shader;
+    }
+
+    function createWebGLRenderer(canvas) {
+        let gl;
+        try {
+            gl = canvas.getContext('webgl', {
+                alpha: false,
+                antialias: false,
+                depth: false,
+                stencil: false,
+                powerPreference: 'high-performance'
+            });
+        } catch (error) {
+            return null;
+        }
+        if (!gl) return null;
+
+        const vertexShader = compileShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+        const fragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+        if (!vertexShader || !fragmentShader) return null;
+
+        const program = gl.createProgram();
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+        gl.deleteShader(vertexShader);
+        gl.deleteShader(fragmentShader);
+
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            console.warn('Glass FX program linking failed:', gl.getProgramInfoLog(program));
+            gl.deleteProgram(program);
+            return null;
+        }
+
+        const positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.bufferData(
+            gl.ARRAY_BUFFER,
+            new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
+            gl.STATIC_DRAW
+        );
+
+        const texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        return {
+            canvas,
+            gl,
+            program,
+            positionBuffer,
+            texture,
+            attributes: {
+                position: gl.getAttribLocation(program, 'a_position')
+            },
+            uniforms: {
+                scene: gl.getUniformLocation(program, 'u_scene'),
+                resolution: gl.getUniformLocation(program, 'u_resolution'),
+                impact: gl.getUniformLocation(program, 'u_impact'),
+                progress: gl.getUniformLocation(program, 'u_progress'),
+                seed: gl.getUniformLocation(program, 'u_seed')
+            }
+        };
+    }
+
+    function renderWebGLFrame(renderer, origin, progress, seed) {
+        const { canvas, gl, program, positionBuffer, texture, attributes, uniforms } = renderer;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        gl.useProgram(program);
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.enableVertexAttribArray(attributes.position);
+        gl.vertexAttribPointer(attributes.position, 2, gl.FLOAT, false, 0, 0);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.uniform1i(uniforms.scene, 0);
+        gl.uniform2f(uniforms.resolution, canvas.width, canvas.height);
+        gl.uniform2f(
+            uniforms.impact,
+            origin.x / window.innerWidth,
+            1 - origin.y / window.innerHeight
+        );
+        gl.uniform1f(uniforms.progress, progress);
+        gl.uniform1f(uniforms.seed, seed);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
+
+    function startWebGLGlass(canvas, scene, width, height, origin, reducedMotion) {
+        if (!scene) return false;
+        if (!webglRenderer || webglRenderer.canvas !== canvas) {
+            webglRenderer = createWebGLRenderer(canvas);
+        }
+        if (!webglRenderer) return false;
+
+        const ratio = Math.min(window.devicePixelRatio || 1, width < 620 ? 1.5 : 2);
+        canvas.width = Math.round(width * ratio);
+        canvas.height = Math.round(height * ratio);
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+
+        const { gl, texture } = webglRenderer;
+        try {
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, scene);
+        } catch (error) {
+            console.warn('Glass FX scene texture could not be uploaded:', error);
+            return false;
+        }
+
+        const seed = Math.random();
+        if (reducedMotion) {
+            renderWebGLFrame(webglRenderer, origin, 1, seed);
+            return true;
+        }
+
+        const startedAt = performance.now();
+        const render = now => {
+            const elapsed = now - startedAt;
+            const linearProgress = clamp(elapsed / 620, 0, 1);
+            const easedProgress = 1 - Math.pow(1 - linearProgress, 3);
+            renderWebGLFrame(webglRenderer, origin, easedProgress, seed);
+            if (elapsed < 900) webglFrame = requestAnimationFrame(render);
+        };
+        webglFrame = requestAnimationFrame(render);
+        return true;
+    }
+
+    function sceneMatchesViewport() {
+        return cachedScene
+            && cachedSceneSize
+            && cachedSceneSize.width === window.innerWidth
+            && cachedSceneSize.height === window.innerHeight;
+    }
+
+    window.prepareGlassShotTexture = function prepareGlassShotTexture(force = false) {
+        if (typeof window.html2canvas !== 'function') return Promise.resolve(null);
+        if (!force && sceneMatchesViewport()) return Promise.resolve(cachedScene);
+        if (cachedScenePromise) return cachedScenePromise;
+
+        const captureWidth = window.innerWidth;
+        const captureHeight = window.innerHeight;
+        cachedScenePromise = window.html2canvas(document.body, {
+            backgroundColor: '#090b10',
+            width: captureWidth,
+            height: captureHeight,
+            windowWidth: captureWidth,
+            windowHeight: captureHeight,
+            scrollX: window.scrollX,
+            scrollY: window.scrollY,
+            scale: Math.min(window.devicePixelRatio || 1, 1.5),
+            logging: false,
+            useCORS: true,
+            imageTimeout: 1600,
+            ignoreElements: element => [
+                'bullet-glass-shatter-overlay',
+                'player-phase-overlay',
+                'toast-container',
+                'glass-refraction-canvas',
+                'glass-cracks-canvas'
+            ].includes(element.id),
+            onclone: clonedDocument => {
+                const shotOverlay = clonedDocument.getElementById('bullet-glass-shatter-overlay');
+                const phaseOverlay = clonedDocument.getElementById('player-phase-overlay');
+                const toastContainer = clonedDocument.getElementById('toast-container');
+                if (shotOverlay) shotOverlay.remove();
+                if (phaseOverlay) phaseOverlay.remove();
+                if (toastContainer) toastContainer.remove();
+            }
+        }).then(scene => {
+            cachedScene = scene;
+            cachedSceneSize = { width: captureWidth, height: captureHeight };
+            return scene;
+        }).catch(error => {
+            console.warn('Glass FX pre-capture failed; Canvas fallback will be used:', error);
+            return null;
+        }).finally(() => {
+            cachedScenePromise = null;
+        });
+
+        return cachedScenePromise;
+    };
 
     function distanceToViewportEdge(x, y, angle, width, height) {
         const cos = Math.cos(angle);
@@ -278,23 +605,36 @@
 
     function clearEffect(overlay) {
         if (fractureFrame) cancelAnimationFrame(fractureFrame);
+        if (webglFrame) cancelAnimationFrame(webglFrame);
         fractureFrame = null;
-        overlay.classList.remove('active');
+        webglFrame = null;
+        overlay.classList.remove('active', 'webgl-glass');
         overlay.hidden = true;
-        const canvas = overlay.querySelector('#glass-cracks-canvas');
-        const context = canvas && canvas.getContext('2d');
-        if (context) context.clearRect(0, 0, canvas.width, canvas.height);
+
+        const fallbackCanvas = overlay.querySelector('#glass-cracks-canvas');
+        const fallbackContext = fallbackCanvas && fallbackCanvas.getContext('2d');
+        if (fallbackContext) {
+            fallbackContext.clearRect(0, 0, fallbackCanvas.width, fallbackCanvas.height);
+        }
+
+        if (webglRenderer) {
+            const { gl } = webglRenderer;
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+        }
     }
 
     window.triggerGunshotAndShatter = function triggerGunshotAndShatter() {
         const overlay = document.getElementById('bullet-glass-shatter-overlay');
-        const canvas = document.getElementById('glass-cracks-canvas');
+        const refractionCanvas = document.getElementById('glass-refraction-canvas');
+        const fallbackCanvas = document.getElementById('glass-cracks-canvas');
         const shards = document.getElementById('glass-shards-container');
         const particles = document.getElementById('glass-particles-container');
-        if (!overlay || !canvas || !shards || !particles) return;
+        if (!overlay || !refractionCanvas || !fallbackCanvas || !shards || !particles) return;
 
         if (cleanupTimer) window.clearTimeout(cleanupTimer);
         if (fractureFrame) cancelAnimationFrame(fractureFrame);
+        if (webglFrame) cancelAnimationFrame(webglFrame);
 
         const width = window.innerWidth;
         const height = window.innerHeight;
@@ -303,12 +643,20 @@
             y: height * random(0.40, 0.55)
         };
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const context = prepareCanvas(canvas, width, height);
-        const fracture = buildFracture(width, height, origin);
+        const scene = sceneMatchesViewport() ? cachedScene : null;
+        const webglActive = startWebGLGlass(
+            refractionCanvas,
+            scene,
+            width,
+            height,
+            origin,
+            reducedMotion
+        );
 
         overlay.style.setProperty('--impact-x', `${origin.x}px`);
         overlay.style.setProperty('--impact-y', `${origin.y}px`);
         overlay.style.setProperty('--tracer-length', `${origin.x + 70}px`);
+        overlay.classList.toggle('webgl-glass', webglActive);
         createShards(shards, origin, width, height);
         createImpactParticles(particles, origin);
 
@@ -316,8 +664,39 @@
         overlay.classList.remove('active');
         void overlay.offsetWidth;
         overlay.classList.add('active');
-        animateFracture(canvas, fracture, reducedMotion);
+
+        if (!webglActive) {
+            prepareCanvas(fallbackCanvas, width, height);
+            const fracture = buildFracture(width, height, origin);
+            animateFracture(fallbackCanvas, fracture, reducedMotion);
+            if (!cachedScenePromise) window.prepareGlassShotTexture();
+        } else {
+            const fallbackContext = fallbackCanvas.getContext('2d');
+            if (fallbackContext) {
+                fallbackContext.clearRect(0, 0, fallbackCanvas.width, fallbackCanvas.height);
+            }
+        }
 
         cleanupTimer = window.setTimeout(() => clearEffect(overlay), reducedMotion ? 1850 : 3900);
     };
+
+    function scheduleInitialCapture() {
+        const capture = () => window.prepareGlassShotTexture();
+        if ('requestIdleCallback' in window) {
+            window.requestIdleCallback(capture, { timeout: 1600 });
+        } else {
+            window.setTimeout(capture, 350);
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', scheduleInitialCapture, { once: true });
+    } else {
+        scheduleInitialCapture();
+    }
+
+    window.addEventListener('resize', () => {
+        cachedScene = null;
+        cachedSceneSize = null;
+    }, { passive: true });
 }());
