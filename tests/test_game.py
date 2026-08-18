@@ -216,3 +216,42 @@ def test_mafia_night_target_and_auto_win_condition(client):
     assert data["stats"]["alive_mafia"] == 1
     assert data["stats"]["alive_town"] == 1
     assert data["stats"]["winner"] == "mafia"
+
+
+def test_don_priority_override_over_mafia(client):
+    from app import handle_mafia_select_target, active_night_actions
+    with app.app_context():
+        room = Room(host_code="DON999", status="started")
+        don = Player(room_code="DON999", name="The Don", role="Don", role_info={"team": "mafia"}, is_alive=True)
+        mafia = Player(room_code="DON999", name="Regular Mafia", role="Mafia", role_info={"team": "mafia"}, is_alive=True)
+        v1 = Player(room_code="DON999", name="Target 1", role="Villager", role_info={"team": "town"}, is_alive=True)
+        v2 = Player(room_code="DON999", name="Target 2", role="Villager", role_info={"team": "town"}, is_alive=True)
+        room.players = [don, mafia, v1, v2]
+        db.session.add(room)
+        db.session.commit()
+        don_id, mafia_id, v1_id, v2_id = don.id, mafia.id, v1.id, v2.id
+
+    # 1. Regular Mafia votes for Target 1
+    handle_mafia_select_target({
+        "room": "DON999",
+        "voter_id": mafia_id,
+        "target_id": v1_id
+    })
+    assert active_night_actions["DON999"]["mafia_target"] == v1_id
+
+    # 2. Don votes for Target 2 -> Overrides Target 1!
+    handle_mafia_select_target({
+        "room": "DON999",
+        "voter_id": don_id,
+        "target_id": v2_id
+    })
+    assert active_night_actions["DON999"]["mafia_target"] == v2_id
+    assert active_night_actions["DON999"]["don_target"] == v2_id
+
+    # 3. Regular Mafia tries to vote for Target 1 again -> Don's Target 2 remains final!
+    handle_mafia_select_target({
+        "room": "DON999",
+        "voter_id": mafia_id,
+        "target_id": v1_id
+    })
+    assert active_night_actions["DON999"]["mafia_target"] == v2_id

@@ -135,8 +135,11 @@ const TRANSLATIONS = {
         night_no_victims: "Bu gecə şəhərdə heç kim öldürülmədi.",
         host_night_title: "Gecə Fəaliyyəti",
         mafia_target_label: "Mafiyanın hədəfi:",
+        don_decision_label: "Donun qərarı (Yekun):",
         waiting_mafia_choice: "Seçim gözlənilir...",
         mafia_chose_target_toast: "Mafiya hədəf seçdi:",
+        don_decided_toast: "Don yekun qərar verdi:",
+        don_badge: "Don",
         room_closed_toast: "Otaq aparıcı tərəfindən bağlandı. Əsas menyuya yönləndirilirsiniz...",
         
         // Custom Roles Builder
@@ -309,8 +312,11 @@ const TRANSLATIONS = {
         night_no_victims: "Этой ночью никто не погиб.",
         host_night_title: "Ночные действия",
         mafia_target_label: "Цель мафии:",
+        don_decision_label: "Решение Дона (Финальное):",
         waiting_mafia_choice: "Ожидается выбор...",
         mafia_chose_target_toast: "Мафия выбрала цель:",
+        don_decided_toast: "Дон принял финальное решение:",
+        don_badge: "Дон",
         room_closed_toast: "Комната была закрыта ведущим. Возвращение в главное меню...",
         
         // Custom Roles Builder
@@ -483,8 +489,11 @@ const TRANSLATIONS = {
         night_no_victims: "Nobody was killed tonight.",
         host_night_title: "Night Actions",
         mafia_target_label: "Mafia's Target:",
+        don_decision_label: "Don's Decision (Final):",
         waiting_mafia_choice: "Waiting for choice...",
         mafia_chose_target_toast: "Mafia selected target:",
+        don_decided_toast: "Don made the final decision:",
+        don_badge: "Don",
         room_closed_toast: "The room was closed by the host. Redirecting to home...",
         
         // Custom Roles Builder

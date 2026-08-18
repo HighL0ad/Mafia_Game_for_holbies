@@ -468,7 +468,11 @@
         const display = document.getElementById('host-mafia-target-display');
         if (display) {
             if (data.target_name) {
-                display.innerHTML = `<span style="color: var(--role-mafia); font-weight: 800;"><i class="fa-solid fa-crosshairs"></i> ${data.target_name}</span>`;
+                if (data.is_don_decision) {
+                    display.innerHTML = `<span style="color: var(--role-don); font-weight: 800;"><i class="fa-solid fa-crown" style="margin-right: 4px;"></i> ${data.target_name} (${t('don_badge') || 'Don'})</span>`;
+                } else {
+                    display.innerHTML = `<span style="color: var(--role-mafia); font-weight: 800;"><i class="fa-solid fa-crosshairs" style="margin-right: 4px;"></i> ${data.target_name}</span>`;
+                }
             } else {
                 display.innerHTML = `<span data-i18n="waiting_mafia_choice">${t('waiting_mafia_choice')}</span>`;
             }
@@ -485,14 +489,24 @@
                 if (infoDiv) {
                     const badge = document.createElement('span');
                     badge.className = 'mafia-target-badge';
-                    badge.innerHTML = '<i class="fa-solid fa-crosshairs"></i> ' + (t('mafia_target_label') || 'Hədəf');
+                    if (data.is_don_decision) {
+                        badge.style.borderColor = 'var(--role-don)';
+                        badge.style.color = 'var(--role-don)';
+                        badge.innerHTML = '<i class="fa-solid fa-crown"></i> ' + (t('don_badge') || 'Don') + ' ' + (t('mafia_target_label') || 'Hədəf');
+                    } else {
+                        badge.innerHTML = '<i class="fa-solid fa-crosshairs"></i> ' + (t('mafia_target_label') || 'Hədəf');
+                    }
                     infoDiv.appendChild(badge);
                 }
             }
         }
 
         if (data.target_name) {
-            showToast(`${t('mafia_chose_target_toast')} ${data.target_name}`, 'warning', 6000);
+            if (data.is_don_decision) {
+                showToast(`${t('don_decided_toast')} ${data.target_name}`, 'warning', 6000);
+            } else {
+                showToast(`${t('mafia_chose_target_toast')} ${data.target_name}`, 'warning', 6000);
+            }
         }
     });
 

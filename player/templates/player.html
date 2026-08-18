@@ -514,6 +514,10 @@
                 radioIcon.style.color = isMatch ? 'var(--role-mafia)' : 'var(--text-muted)';
             }
         });
+
+        if (data.is_don_decision && data.target_name && data.voter_id !== playerId) {
+            showToast(`${t('don_decided_toast')} ${data.target_name}`, 'warning', 6000);
+        }
     });
 
     function triggerGunshotFlash() {

@@ -76,6 +76,12 @@ def handle_mafia_select_target(data):
     if not room:
         return
 
+    if voter_id is not None:
+        try:
+            voter_id = int(voter_id)
+        except (ValueError, TypeError):
+            pass
+
     if target_id is not None:
         try:
             target_id = int(target_id)
@@ -83,23 +89,50 @@ def handle_mafia_select_target(data):
             pass
 
     if room not in active_night_actions:
-        active_night_actions[room] = {"mafia_target": None, "votes": {}}
+        active_night_actions[room] = {"mafia_target": None, "don_target": None, "votes": {}}
+
+    voter = db.session.get(Player, voter_id) if voter_id else None
+    room_players = Player.query.filter_by(room_code=room, is_alive=True).all()
+    living_don = next((p for p in room_players if (p.role or "").lower() == "don"), None)
 
     active_night_actions[room]["votes"][voter_id] = target_id
-    active_night_actions[room]["mafia_target"] = target_id
 
+    is_don_decision = False
+    if living_don:
+        if voter and voter.id == living_don.id:
+            # Don makes the final, authoritative choice
+            active_night_actions[room]["don_target"] = target_id
+            active_night_actions[room]["mafia_target"] = target_id
+            is_don_decision = True
+        else:
+            # Regular mafia voted; if Don already voted, Don's choice overrides
+            if active_night_actions[room].get("don_target"):
+                target_id = active_night_actions[room]["don_target"]
+                is_don_decision = True
+            else:
+                active_night_actions[room]["mafia_target"] = target_id
+                is_don_decision = False
+    else:
+        active_night_actions[room]["mafia_target"] = target_id
+        is_don_decision = False
+
+    final_target_id = active_night_actions[room]["mafia_target"]
     target_name = None
-    if target_id:
-        p = db.session.get(Player, target_id)
+    if final_target_id:
+        p = db.session.get(Player, final_target_id)
         if p:
             target_name = p.name
 
     socketio.emit(
         "mafia_target_updated",
         {
-            "target_id": target_id,
+            "target_id": final_target_id,
             "target_name": target_name,
-            "voter_id": voter_id
+            "voter_id": voter_id,
+            "voter_name": voter.name if voter else "",
+            "is_don_decision": is_don_decision,
+            "has_living_don": bool(living_don),
+            "don_id": living_don.id if living_don else None
         },
         room=room
     )
