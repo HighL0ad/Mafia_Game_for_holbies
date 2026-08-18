@@ -12,12 +12,12 @@
 }
 
 .player-top-bar {
-    width: min(370px, 92vw);
+    width: min(330px, 86vw);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin: 0 auto 20px auto;
-    padding: 12px 18px;
+    margin: 0 auto 14px auto;
+    padding: 10px 16px;
     background: var(--bg-surface-elevated);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
@@ -26,7 +26,7 @@
 
 .player-nickname {
     font-weight: 700;
-    font-size: 1.05rem;
+    font-size: 1rem;
     color: #ffffff;
     display: flex;
     align-items: center;
@@ -40,11 +40,13 @@
     letter-spacing: 1px;
 }
 
-/* 3D Perspective Card Container */
+/* 3D Perspective Card Container with Perfect 1:1.45 Playing Card Proportions */
 .card-scene {
     perspective: 1200px;
-    width: min(370px, 92vw);
-    height: clamp(380px, 58vh, 500px);
+    width: min(330px, 86vw);
+    aspect-ratio: 1 / 1.45;
+    max-height: 62vh;
+    height: auto;
     user-select: none;
     -webkit-user-select: none;
     margin: 0 auto 14px auto;
@@ -334,54 +336,58 @@
     display: flex;
 }
 
-/* Mobile zero-scroll adjustments */
+/* Mobile zero-scroll & proportional adjustments */
 @media (max-width: 600px) {
     .player-top-bar {
-        margin: 0 auto 8px auto;
-        padding: 8px 14px;
-        font-size: 0.95rem;
+        width: min(310px, 84vw);
+        margin: 0 auto 10px auto;
+        padding: 9px 14px;
+        font-size: 0.92rem;
     }
     .card-scene {
-        height: clamp(350px, 54vh, 440px);
-        margin: 0 auto 8px auto;
+        width: min(310px, 84vw);
+        aspect-ratio: 1 / 1.45;
+        max-height: 58vh;
+        height: auto;
+        margin: 0 auto 10px auto;
     }
     .card-face {
-        padding: 16px 14px;
+        padding: 20px 16px;
     }
     .mystery-seal {
-        width: 72px;
-        height: 72px;
-        font-size: 30px;
-        margin: 4px auto 0 auto;
+        width: 78px;
+        height: 78px;
+        font-size: 34px;
+        margin: 6px auto 0 auto;
     }
     .mystery-title {
-        font-size: 1.3rem;
-        margin-top: 4px;
+        font-size: 1.4rem;
+        margin-top: 6px;
     }
     .tap-hint {
-        padding: 6px 12px;
-        font-size: 0.78rem;
+        padding: 7px 14px;
+        font-size: 0.8rem;
     }
     .role-badge-icon {
-        width: 64px;
-        height: 64px;
-        font-size: 28px;
-        margin: 0 auto 6px auto;
+        width: 70px;
+        height: 70px;
+        font-size: 32px;
+        margin: 0 auto 8px auto;
     }
     .role-name-display {
-        font-size: 1.45rem;
-        margin: 0 auto 6px auto;
+        font-size: 1.55rem;
+        margin: 0 auto 8px auto;
     }
     .role-desc-box {
-        padding: 8px 12px;
-        font-size: 0.78rem;
-        line-height: 1.4;
-        margin-bottom: 8px;
-        max-height: 100px;
+        padding: 10px 14px;
+        font-size: 0.82rem;
+        line-height: 1.45;
+        margin-bottom: 10px;
+        max-height: 110px;
         overflow-y: auto;
     }
     .hide-role-btn {
-        padding: 7px 12px;
-        font-size: 0.8rem;
+        padding: 8px 14px;
+        font-size: 0.82rem;
     }
 }
