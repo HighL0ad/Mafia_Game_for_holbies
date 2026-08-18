@@ -86,8 +86,10 @@ const TRANSLATIONS = {
         voting_tie: "Bərabərlik! Heç kim çıxarılmadı.",
         btn_confirm_elim: "Çıxarılmanı təsdiq et",
         btn_pardon: "Bağışla (Oyunda saxla)",
+        btn_skip_voting: "Keç / Скип (Heç kim çıxarılmadı)",
         btn_revote: "Yenidən səsvermə",
         pardon_toast: "Oyunçu bağışlandı və oyunda qaldı!",
+        skip_voting_toast: "Səsvermə keçildi — heç kim çıxarılmadı.",
         
         // Ghost / Spectator Mode
         ghost_mode_title: "👁️ Müşahidəçi Rejimi (Bütün Rollar)",
@@ -212,8 +214,10 @@ const TRANSLATIONS = {
         voting_tie: "Ничья! Никто не исключен.",
         btn_confirm_elim: "Подтвердить исключение",
         btn_pardon: "Помиловать (Оставить в игре)",
+        btn_skip_voting: "Пропустить / Скип (Никто не выбыл)",
         btn_revote: "Переголосовать",
         pardon_toast: "Игрок помилован и остался в игре!",
+        skip_voting_toast: "Голосование пропущено — никто не выбыл.",
         
         // Ghost / Spectator Mode
         ghost_mode_title: "👁️ Режим Наблюдателя (Все Роли)",
@@ -338,8 +342,10 @@ const TRANSLATIONS = {
         voting_tie: "Tie! No player was eliminated.",
         btn_confirm_elim: "Confirm Elimination",
         btn_pardon: "Pardon (Keep in game)",
+        btn_skip_voting: "Skip (No one eliminated)",
         btn_revote: "Revote",
         pardon_toast: "Player pardoned and remains in the game!",
+        skip_voting_toast: "Voting skipped — no one was eliminated.",
         
         // Ghost / Spectator Mode
         ghost_mode_title: "👁️ Spectator Mode (All Roles)",
