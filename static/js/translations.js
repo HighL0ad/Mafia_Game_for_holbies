@@ -93,7 +93,7 @@ const TRANSLATIONS = {
         skip_voting_toast: "Səsvermə keçildi — heç kim çıxarılmadı.",
         
         // Ghost / Spectator Mode
-        ghost_mode_title: "👁️ Müşahidəçi Rejimi (Bütün Rollar)",
+        ghost_mode_title: "Müşahidəçi Rejimi (Bütün Rollar)",
         ghost_mode_desc: "Siz oyundan çıxarılmısınız, lakin bütün oyunçuların rollarını canlı görə bilərsiniz:",
         status_alive_badge: "Sağdır",
         status_dead_badge: "Çıxarılıb",
@@ -103,17 +103,17 @@ const TRANSLATIONS = {
         balance_town: "Dinc sakin:",
         balance_total: "Sağ qalan:",
         
-        winner_mafia_title: "🔴 MAFİYA QALİB GƏLDİ!",
+        winner_mafia_title: "MAFİYA QALİB GƏLDİ!",
         winner_mafia_desc: "Mafiya şəhəri tamamilə ələ keçirdi.",
-        winner_town_title: "🟢 DİNC ŞƏHƏR QALİB GƏLDİ!",
+        winner_town_title: "DİNC ŞƏHƏR QALİB GƏLDİ!",
         winner_town_desc: "Bütün cinayətkarlar ifşa edildi və aradan qaldırıldı.",
-        winner_maniac_title: "🟣 MANYAQ QALİB GƏLDİ!",
+        winner_maniac_title: "MANYAQ QALİB GƏLDİ!",
         winner_maniac_desc: "Tək qatil hər kəsi aradan qaldıraraq sağ qaldı.",
         
         // End Game Results Screen
         game_results_title: "Oyunun Nəticələri",
         game_over_title: "OYUN BAŞA ÇATDI",
-        your_team_won: "Təbriklər! Komandanız qalib gəldi! 🎉",
+        your_team_won: "Təbriklər! Komandanız qalib gəldi!",
         your_team_lost: "Təəssüf ki, komandanız məğlub oldu.",
         player_roster_title: "Bütün Oyunçuların Rolları",
         btn_back_home: "Əsas menyuya qayıt",
@@ -125,10 +125,10 @@ const TRANSLATIONS = {
         time_seconds_short: "san",
         
         // Mafia Night Kill & Gunshot
-        mafia_night_title: "🔴 Mafiya Atəşi (Hədəf seçimi)",
+        mafia_night_title: "Mafiya Atəşi (Hədəf seçimi)",
         mafia_night_subtitle: "Bu gecə kimi aradan qaldırmaq istəyirsiniz?",
         mafia_target_selected: "Mafiya hədəfi seçildi",
-        you_were_shot_title: "💥 SİZ BU GECƏ GÜLLƏLƏNDİNİZ!",
+        you_were_shot_title: "SİZ BU GECƏ GÜLLƏLƏNDİNİZ!",
         you_were_shot_desc: "Mafiya bu gecə sizi hədəf aldı və siz oyundan çıxarıldınız.",
         night_victim_broadcast: "Bu gecə şəhərdə qanlı hadisə baş verdi:",
         night_victim_elim: "mafiya tərəfindən güllələndi!",
@@ -262,7 +262,7 @@ const TRANSLATIONS = {
         skip_voting_toast: "Голосование пропущено — никто не выбыл.",
         
         // Ghost / Spectator Mode
-        ghost_mode_title: "👁️ Режим Наблюдателя (Все Роли)",
+        ghost_mode_title: "Режим Наблюдателя (Все Роли)",
         ghost_mode_desc: "Вы выбыли из игры, но можете наблюдать за всеми скрытыми ролями:",
         status_alive_badge: "Жив",
         status_dead_badge: "Выбыл",
@@ -272,17 +272,17 @@ const TRANSLATIONS = {
         balance_town: "Мирные:",
         balance_total: "Живых:",
         
-        winner_mafia_title: "🔴 ПОБЕДА МАФИИ!",
+        winner_mafia_title: "ПОБЕДА МАФИИ!",
         winner_mafia_desc: "Мафия получила численное превосходство и захватила город.",
-        winner_town_title: "🟢 ПОБЕДА ГОРОДА!",
+        winner_town_title: "ПОБЕДА ГОРОДА!",
         winner_town_desc: "Все преступники были найдены и обезврежены.",
-        winner_maniac_title: "🟣 ПОБЕДА МАНЬЯКА!",
+        winner_maniac_title: "ПОБЕДА МАНЬЯКА!",
         winner_maniac_desc: "Одинокий маньяк устранил всех и остался последним выжившим.",
         
         // End Game Results Screen
         game_results_title: "Итоги Игры",
         game_over_title: "ИГРА ЗАВЕРШЕНА",
-        your_team_won: "Поздравляем! Ваша команда победила! 🎉",
+        your_team_won: "Поздравляем! Ваша команда победила!",
         your_team_lost: "К сожалению, ваша команда проиграла.",
         player_roster_title: "Раскрытие всех ролей",
         btn_back_home: "В главное меню",
@@ -294,10 +294,10 @@ const TRANSLATIONS = {
         time_seconds_short: "сек",
         
         // Mafia Night Kill & Gunshot
-        mafia_night_title: "🔴 Выбор жертвы Мафии",
+        mafia_night_title: "Выбор жертвы Мафии",
         mafia_night_subtitle: "Кого мафия устраняет этой ночью?",
         mafia_target_selected: "Цель мафии выбрана",
-        you_were_shot_title: "💥 ВАС ЗАСТРЕЛИЛИ ЭТОЙ НОЧЬЮ!",
+        you_were_shot_title: "ВАС ЗАСТРЕЛИЛИ ЭТОЙ НОЧЬЮ!",
         you_were_shot_desc: "Мафия выбрала вас своей жертвой, вы выбыли из игры.",
         night_victim_broadcast: "Итоги ночи в городе:",
         night_victim_elim: "был застрелен мафией!",
@@ -431,7 +431,7 @@ const TRANSLATIONS = {
         skip_voting_toast: "Voting skipped — no one was eliminated.",
         
         // Ghost / Spectator Mode
-        ghost_mode_title: "👁️ Spectator Mode (All Roles)",
+        ghost_mode_title: "Spectator Mode (All Roles)",
         ghost_mode_desc: "You have been eliminated, but you can now spectate all players' roles:",
         status_alive_badge: "Alive",
         status_dead_badge: "Dead",
@@ -441,17 +441,17 @@ const TRANSLATIONS = {
         balance_town: "Town:",
         balance_total: "Alive:",
         
-        winner_mafia_title: "🔴 MAFIA WON!",
+        winner_mafia_title: "MAFIA WON!",
         winner_mafia_desc: "Mafia gained majority and seized control of the city.",
-        winner_town_title: "🟢 TOWN WON!",
+        winner_town_title: "TOWN WON!",
         winner_town_desc: "All criminals were investigated and eliminated.",
-        winner_maniac_title: "🟣 MANIAC WON!",
+        winner_maniac_title: "MANIAC WON!",
         winner_maniac_desc: "The solo maniac outlasted everyone and won.",
         
         // End Game Results Screen
         game_results_title: "Game Results",
         game_over_title: "GAME OVER",
-        your_team_won: "Congratulations! Your team won! 🎉",
+        your_team_won: "Congratulations! Your team won!",
         your_team_lost: "Unfortunately, your team lost.",
         player_roster_title: "All Players & Roles Revealed",
         btn_back_home: "Back to Home",
@@ -463,10 +463,10 @@ const TRANSLATIONS = {
         time_seconds_short: "sec",
         
         // Mafia Night Kill & Gunshot
-        mafia_night_title: "🔴 Mafia Night Target",
+        mafia_night_title: "Mafia Night Target",
         mafia_night_subtitle: "Who does the Mafia eliminate tonight?",
         mafia_target_selected: "Mafia target selected",
-        you_were_shot_title: "💥 YOU WERE SHOT TONIGHT!",
+        you_were_shot_title: "YOU WERE SHOT TONIGHT!",
         you_were_shot_desc: "The Mafia targeted and eliminated you tonight.",
         night_victim_broadcast: "Morning News:",
         night_victim_elim: "was shot by the Mafia!",

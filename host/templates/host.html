@@ -388,7 +388,7 @@
 
                 if (data.victim_eliminated) {
                     sounds.playEliminated();
-                    showToast(`💥 ${data.victim_eliminated.name} ${t('night_victim_elim')}`, 'error', 8000);
+                    showToast(`${data.victim_eliminated.name} ${t('night_victim_elim')}`, 'error', 8000);
                     const card = document.getElementById(`player-card-${data.victim_eliminated.id}`);
                     if (card) {
                         const nameEl = card.querySelector('.player-name');

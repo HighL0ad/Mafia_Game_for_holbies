@@ -42,7 +42,7 @@ class SoundEngine {
         }
     }
 
-    // 1. 🌙 Night Bell (Dark, deep cinematic chime)
+    // 1. Night Bell (Dark, deep cinematic chime)
     playNight() {
         if (!this.enabled) return;
         this.init();
@@ -74,7 +74,7 @@ class SoundEngine {
         osc2.stop(now + 2.2);
     }
 
-    // 2. ☀️ Sunrise / Day Chime (Bright, warm harmonic chord)
+    // 2. Sunrise / Day Chime (Bright, warm harmonic chord)
     playDay() {
         if (!this.enabled) return;
         this.init();
@@ -100,7 +100,7 @@ class SoundEngine {
         });
     }
 
-    // 3. 🗳️ Voting Gavel / Alert (Double gavel knock)
+    // 3. Voting Gavel / Alert (Double gavel knock)
     playVoting() {
         if (!this.enabled) return;
         this.init();
@@ -126,7 +126,7 @@ class SoundEngine {
         });
     }
 
-    // 4. ⏱️ Timer Tick (for final 5 seconds)
+    // 4. Timer Tick (for final 5 seconds)
     playTick() {
         if (!this.enabled) return;
         this.init();
@@ -149,7 +149,7 @@ class SoundEngine {
         osc.stop(now + 0.07);
     }
 
-    // 5. 🔔 Timer End Gong
+    // 5. Timer End Gong
     playGong() {
         if (!this.enabled) return;
         this.init();
@@ -178,7 +178,7 @@ class SoundEngine {
         osc2.stop(now + 2.5);
     }
 
-    // 6. 🎴 Card Deal Shimmer (Roles distribution)
+    // 6. Card Deal Shimmer (Roles distribution)
     playCardDeal() {
         if (!this.enabled) return;
         this.init();
@@ -204,7 +204,7 @@ class SoundEngine {
         });
     }
 
-    // 7. 💀 Player Eliminated Sound
+    // 7. Player Eliminated Sound
     playEliminated() {
         if (!this.enabled) return;
         this.init();
@@ -228,7 +228,7 @@ class SoundEngine {
         osc.stop(now + 0.8);
     }
 
-    // 8. 🏆 Victory Fanfare
+    // 8. Victory Fanfare
     playVictory() {
         if (!this.enabled) return;
         this.init();
@@ -262,7 +262,7 @@ class SoundEngine {
         });
     }
 
-    // 9. 🔔 New Player Joined Lobby
+    // 9. New Player Joined Lobby
     playJoin() {
         if (!this.enabled) return;
         this.init();
@@ -288,7 +288,7 @@ class SoundEngine {
         });
     }
 
-    // 10. 🔘 UI Click
+    // 10. UI Click
     playClick() {
         if (!this.enabled) return;
         this.init();
@@ -310,7 +310,7 @@ class SoundEngine {
         osc.stop(now + 0.05);
     }
 
-    // 11. 💥 🔫 Realistic Gunshot Sound with Shockwave & Echo
+    // 11. Realistic Gunshot Sound with Shockwave & Echo
     playGunshot() {
         if (!this.enabled) return;
         this.init();

@@ -69,7 +69,7 @@
     <div id="ghost-roster-container" class="ghost-roster-container" style="{{ 'display: flex;' if not player.is_alive else 'display: none;' }}">
         <div class="ghost-roster-header">
             <div class="ghost-roster-title">
-                <i class="fa-solid fa-eye"></i> <span data-i18n="ghost_mode_title">👁️ Müşahidəçi Rejimi (Bütün Rollar)</span>
+                <i class="fa-solid fa-eye"></i> <span data-i18n="ghost_mode_title">Müşahidəçi Rejimi (Bütün Rollar)</span>
             </div>
         </div>
         <p style="color: var(--text-secondary); font-size: 0.82rem; margin: 0;" data-i18n="ghost_mode_desc">
@@ -109,7 +109,7 @@
     <!-- Mafia Night Target Selection (Visible only to Mafia team members during night) -->
     <div id="mafia-night-section" class="mafia-night-section" style="display: none; width: 100%; max-width: 380px; box-sizing: border-box;">
         <div class="mafia-night-header">
-            <i class="fa-solid fa-crosshairs"></i> <span data-i18n="mafia_night_title">🔴 Mafiya Atəşi (Hədəf seçimi)</span>
+            <i class="fa-solid fa-crosshairs"></i> <span data-i18n="mafia_night_title">Mafiya Atəşi (Hədəf seçimi)</span>
         </div>
         <p style="color: var(--text-secondary); font-size: 0.82rem; margin: 0 0 10px 0;" data-i18n="mafia_night_subtitle">
             Bu gecə kimi aradan qaldırmaq istəyirsiniz?
@@ -530,7 +530,7 @@
                 showToast(t('you_were_shot_title'), 'error', 10000);
                 sendPushNotification(t('you_were_shot_title'), t('you_were_shot_desc'));
             } else {
-                showToast(`🔴 ${data.victim_eliminated.name} ${t('night_victim_elim')}`, 'error', 7000);
+                showToast(`${data.victim_eliminated.name} ${t('night_victim_elim')}`, 'error', 7000);
             }
 
             if (!isPlayerAlive && data.all_players) {
@@ -701,19 +701,19 @@
         if (winner === 'mafia') {
             iconEl.className = 'results-header-icon winner-mafia';
             iconEl.innerHTML = '<i class="fa-solid fa-skull"></i>';
-            titleEl.textContent = t('winner_mafia_title') || '🔴 MAFİYA QALİB GƏLDİ!';
+            titleEl.textContent = t('winner_mafia_title') || 'MAFİYA QALİB GƏLDİ!';
             descEl.textContent = t('winner_mafia_desc') || 'Mafiya şəhəri tamamilə ələ keçirdi.';
             isWinner = (myTeam === 'mafia');
         } else if (winner === 'town') {
             iconEl.className = 'results-header-icon winner-town';
             iconEl.innerHTML = '<i class="fa-solid fa-shield-halved"></i>';
-            titleEl.textContent = t('winner_town_title') || '🟢 DİNC ŞƏHƏR QALİB GƏLDİ!';
+            titleEl.textContent = t('winner_town_title') || 'DİNC ŞƏHƏR QALİB GƏLDİ!';
             descEl.textContent = t('winner_town_desc') || 'Bütün cinayətkarlar ifşa edildi və aradan qaldırıldı.';
             isWinner = (myTeam === 'town');
         } else if (winner === 'maniac') {
             iconEl.className = 'results-header-icon winner-maniac';
             iconEl.innerHTML = '<i class="fa-solid fa-bolt"></i>';
-            titleEl.textContent = t('winner_maniac_title') || '🟣 MANYAQ QALİB GƏLDİ!';
+            titleEl.textContent = t('winner_maniac_title') || 'MANYAQ QALİB GƏLDİ!';
             descEl.textContent = t('winner_maniac_desc') || 'Tək qatil hər kəsi aradan qaldıraraq sağ qaldı.';
             isWinner = (myTeam === 'neutral');
         } else {
@@ -728,7 +728,7 @@
             if (isWinner === true) {
                 outcomeBadge.style.display = 'inline-flex';
                 outcomeBadge.className = 'results-outcome-badge outcome-win';
-                outcomeBadge.innerHTML = `<i class="fa-solid fa-trophy"></i> <span>${t('your_team_won') || 'Təbriklər! Komandanız qalib gəldi! 🎉'}</span>`;
+                outcomeBadge.innerHTML = `<i class="fa-solid fa-trophy"></i> <span>${t('your_team_won') || 'Təbriklər! Komandanız qalib gəldi!'}</span>`;
                 sounds.playVictory();
             } else if (isWinner === false) {
                 outcomeBadge.style.display = 'inline-flex';
@@ -806,7 +806,7 @@
         <p id="results-winner-desc" class="results-winner-desc">Oyunun yekun nəticələri</p>
 
         <div id="results-outcome-badge" class="results-outcome-badge outcome-win">
-            <i class="fa-solid fa-trophy"></i> <span>Təbriklər! Komandanız qalib gəldi! 🎉</span>
+            <i class="fa-solid fa-trophy"></i> <span>Təbriklər! Komandanız qalib gəldi!</span>
         </div>
 
         <div class="results-stats-row">
