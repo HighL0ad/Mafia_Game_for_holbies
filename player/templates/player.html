@@ -122,8 +122,38 @@
     </button>
 </div>
 
-<!-- Gunshot Flash FX Overlay -->
+<!-- Gunshot Bullet Glass Shatter FX Overlay -->
 <div id="gunshot-flash-overlay" class="gunshot-flash-overlay"></div>
+<div id="bullet-glass-shatter-overlay" class="bullet-glass-shatter-overlay" style="display: none;">
+    <div class="glass-impact-center">
+        <div class="bullet-hole"></div>
+    </div>
+    <svg class="glass-cracks-svg" viewBox="0 0 500 500" preserveAspectRatio="none">
+        <!-- Radial Primary Cracks -->
+        <path class="crack-line" d="M250,250 L110,30 L20,5" />
+        <path class="crack-line" d="M250,250 L360,20 L480,0" />
+        <path class="crack-line" d="M250,250 L470,160 L500,190" />
+        <path class="crack-line" d="M250,250 L470,360 L500,450" />
+        <path class="crack-line" d="M250,250 L320,470 L340,500" />
+        <path class="crack-line" d="M250,250 L170,470 L150,500" />
+        <path class="crack-line" d="M250,250 L30,380 L0,420" />
+        <path class="crack-line" d="M250,250 L20,210 L0,190" />
+        
+        <!-- Concentric Web Cracks -->
+        <path class="crack-line" d="M225,215 Q250,195 275,215 Q295,245 275,275 Q245,295 215,275 Q195,245 225,215 Z" />
+        <path class="crack-line" d="M190,160 Q250,120 310,160 Q350,220 320,320 Q250,370 170,320 Q130,230 190,160 Z" />
+        <path class="crack-line" d="M140,100 Q250,50 360,100 Q420,210 380,380 Q250,440 110,370 Q60,220 140,100 Z" />
+        
+        <!-- Branching Fine Fractures -->
+        <path class="crack-line" d="M225,215 L170,190 L120,220" />
+        <path class="crack-line" d="M275,215 L340,185 L410,210" />
+        <path class="crack-line" d="M275,275 L350,310 L390,360" />
+        <path class="crack-line" d="M215,275 L150,330 L90,350" />
+        <path class="crack-line" d="M310,160 L380,120 L440,110" />
+        <path class="crack-line" d="M190,160 L130,120 L70,130" />
+    </svg>
+    <div class="glass-frost-overlay"></div>
+</div>
 
 <!-- Live Voting Modal for Players -->
 <div id="player-voting-modal" class="player-voting-modal" style="display: none;">
@@ -520,15 +550,27 @@
         }
     });
 
-    function triggerGunshotFlash() {
-        const overlay = document.getElementById('gunshot-flash-overlay');
-        if (!overlay) return;
-        overlay.classList.remove('active');
-        void overlay.offsetWidth;
-        overlay.classList.add('active');
-        setTimeout(() => {
-            overlay.classList.remove('active');
-        }, 2500);
+    function triggerGunshotAndShatter() {
+        const flashOverlay = document.getElementById('gunshot-flash-overlay');
+        const glassOverlay = document.getElementById('bullet-glass-shatter-overlay');
+
+        if (flashOverlay) {
+            flashOverlay.classList.remove('active');
+            void flashOverlay.offsetWidth;
+            flashOverlay.classList.add('active');
+            setTimeout(() => flashOverlay.classList.remove('active'), 2500);
+        }
+
+        if (glassOverlay) {
+            glassOverlay.style.display = 'flex';
+            glassOverlay.classList.remove('active');
+            void glassOverlay.offsetWidth;
+            glassOverlay.classList.add('active');
+            setTimeout(() => {
+                glassOverlay.classList.remove('active');
+                glassOverlay.style.display = 'none';
+            }, 3500);
+        }
     }
 
     socket.on('phase_changed', function (data) {
@@ -542,12 +584,12 @@
             latestPlayersList = data.all_players;
         }
 
-        // Night victim resolution & Gunshot sound
+        // Night victim resolution & Gunshot sound & Broken Glass FX
         if (data.victim_eliminated) {
             if (data.victim_eliminated.id === playerId) {
                 isPlayerAlive = false;
                 sounds.playGunshot();
-                triggerGunshotFlash();
+                triggerGunshotAndShatter();
                 const banner = document.getElementById('eliminated-banner');
                 if (banner) banner.classList.add('show');
                 const ghostContainer = document.getElementById('ghost-roster-container');
@@ -769,15 +811,27 @@
                 outcomeBadge.className = 'results-outcome-badge outcome-win';
                 outcomeBadge.innerHTML = `<i class="fa-solid fa-trophy"></i> <span>${t('your_team_won') || 'Təbriklər! Komandanız qalib gəldi!'}</span>`;
                 sounds.playVictory();
+                showToast(t('your_team_won') || 'Təbriklər! Komandanız qalib gəldi!', 'success', 10000);
+                sendPushNotification(titleEl.textContent, t('your_team_won') || 'Təbriklər! Komandanız qalib gəldi!');
             } else if (isWinner === false) {
                 outcomeBadge.style.display = 'inline-flex';
                 outcomeBadge.className = 'results-outcome-badge outcome-loss';
                 outcomeBadge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> <span>${t('your_team_lost') || 'Təəssüf ki, komandanız məğlub oldu.'}</span>`;
                 sounds.playEliminated();
+                showToast(t('your_team_lost') || 'Təəssüf ki, komandanız məğlub oldu.', 'error', 10000);
+                sendPushNotification(titleEl.textContent, t('your_team_lost') || 'Təəssüf ki, komandanız məğlub oldu.');
             } else {
                 outcomeBadge.style.display = 'none';
+                showToast(titleEl.textContent, 'info', 10000);
+                sendPushNotification(titleEl.textContent, descEl.textContent);
             }
         }
+
+        // Hide any active interactive overlays so results are clear
+        const phaseOverlay = document.getElementById('player-phase-overlay');
+        if (phaseOverlay) phaseOverlay.style.display = 'none';
+        const votingModal = document.getElementById('player-voting-modal');
+        if (votingModal) votingModal.style.display = 'none';
 
         // Render revealed roster
         if (rosterList && data.roster) {

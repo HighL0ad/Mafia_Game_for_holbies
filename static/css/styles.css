@@ -2083,3 +2083,100 @@ body {
     color: #ffffff;
     font-weight: 700;
 }
+
+/* Bullet Impact & Shattered Glass FX Overlay */
+.bullet-glass-shatter-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10500;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.bullet-glass-shatter-overlay.active {
+    display: flex !important;
+    animation: screenShatterShake 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes screenShatterShake {
+    0% { transform: scale(1) translate(0, 0); filter: brightness(2.2) contrast(1.4); }
+    10% { transform: scale(1.05) translate(-12px, 10px) rotate(-2deg); }
+    20% { transform: scale(1.04) translate(14px, -12px) rotate(2deg); }
+    30% { transform: scale(1.02) translate(-10px, -8px) rotate(-1deg); }
+    40% { transform: scale(1.01) translate(8px, 6px) rotate(0.8deg); }
+    50% { transform: scale(1) translate(-4px, 3px); }
+    100% { transform: scale(1) translate(0, 0); filter: brightness(1) contrast(1); }
+}
+
+.glass-impact-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    z-index: 2;
+}
+
+.bullet-hole {
+    width: 42px;
+    height: 42px;
+    background: radial-gradient(circle, #020202 40%, #1f0000 65%, rgba(230, 57, 70, 0.9) 85%, transparent 100%);
+    border-radius: 50%;
+    margin: 9px auto;
+    box-shadow: inset 0 0 10px #000000, 0 0 30px rgba(230, 57, 70, 0.9), 0 0 60px rgba(0, 0, 0, 0.95);
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    animation: holeImpact 0.25s ease-out forwards;
+}
+
+@keyframes holeImpact {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.5); opacity: 1; filter: drop-shadow(0 0 35px #ff2a2a); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.glass-cracks-svg {
+    position: absolute;
+    width: 100vw;
+    height: 100vh;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 8px rgba(180, 220, 255, 0.6));
+}
+
+.crack-line {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.92);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 600;
+    stroke-dashoffset: 600;
+}
+
+.bullet-glass-shatter-overlay.active .crack-line {
+    animation: crackExpand 0.35s ease-out forwards;
+}
+
+@keyframes crackExpand {
+    0% { stroke-dashoffset: 600; opacity: 0; }
+    20% { opacity: 1; }
+    100% { stroke-dashoffset: 0; opacity: 0.95; }
+}
+
+.glass-frost-overlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(230, 57, 70, 0.35) 0%, rgba(20, 0, 0, 0.65) 60%, rgba(5, 5, 5, 0.88) 100%);
+    backdrop-filter: blur(1.5px);
+    opacity: 0;
+    transition: opacity 0.4s ease-out;
+}
+
+.bullet-glass-shatter-overlay.active .glass-frost-overlay {
+    opacity: 1;
+}

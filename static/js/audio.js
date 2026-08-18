@@ -359,9 +359,36 @@ class SoundEngine {
         whiteNoise.start(now);
         whiteNoise.stop(now + 0.7);
 
-        // C. Intense Haptic Feedback
+        // C. High-Frequency Glass Shatter & Bullet Crack
+        const shatterBufferSize = this.ctx.sampleRate * 0.9;
+        const shatterBuffer = this.ctx.createBuffer(1, shatterBufferSize, this.ctx.sampleRate);
+        const shatterData = shatterBuffer.getChannelData(0);
+        for (let i = 0; i < shatterBufferSize; i++) {
+            shatterData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (this.ctx.sampleRate * 0.25));
+        }
+
+        const shatterSource = this.ctx.createBufferSource();
+        shatterSource.buffer = shatterBuffer;
+
+        const shatterFilter = this.ctx.createBiquadFilter();
+        shatterFilter.type = 'bandpass';
+        shatterFilter.frequency.setValueAtTime(4500, now);
+        shatterFilter.Q.setValueAtTime(3.0, now);
+
+        const shatterGain = this.ctx.createGain();
+        shatterGain.gain.setValueAtTime(0.9, now);
+        shatterGain.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+
+        shatterSource.connect(shatterFilter);
+        shatterFilter.connect(shatterGain);
+        shatterGain.connect(this.ctx.destination);
+
+        shatterSource.start(now + 0.02);
+        shatterSource.stop(now + 0.85);
+
+        // D. Intense Haptic Feedback
         if (navigator.vibrate) {
-            navigator.vibrate([120, 40, 350]);
+            navigator.vibrate([150, 50, 400]);
         }
     }
 }

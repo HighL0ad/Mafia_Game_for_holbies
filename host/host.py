@@ -58,13 +58,17 @@ def check_and_trigger_game_end(room, stats):
     duration_seconds = max(0, int((datetime.utcnow() - started).total_seconds()))
     stats["duration_seconds"] = duration_seconds
 
+    fresh_players = Player.query.filter_by(room_code=room.host_code).all()
     roster = [{
         "id": p.id,
         "name": p.name,
         "role": p.role,
-        "role_info": p.role_info,
+        "role_info": p.role_info or {},
         "is_alive": p.is_alive
-    } for p in room.players]
+    } for p in fresh_players]
+
+    room.status = "finished"
+    db.session.commit()
 
     socketio.emit(
         "game_ended",
