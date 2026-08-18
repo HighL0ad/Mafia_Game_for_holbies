@@ -1,15 +1,19 @@
+import os
+
 import pytest
+
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+
 from app import active_night_actions, app
 from database import db
 from models import Player, Room, get_default_roles_config
-from host.host import calculate_game_stats
+from host.host import calculate_game_stats, serialize_player_view, serialize_public_players
 from utils.role import assign_roles
 
 
 @pytest.fixture
 def client():
     app.config["TESTING"] = True
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
     with app.app_context():
         db.create_all()
         active_night_actions.clear()
@@ -332,3 +336,90 @@ def test_doctor_cannot_self_protect_two_nights_in_a_row(client):
         blocked = handle_doctor_select_target({"room": "DOC2", "player_id": doctor_id, "target_id": doctor_id})
         assert blocked["success"] is False
         assert blocked["error_key"] == "doctor_self_consecutive_error"
+
+
+def test_player_rosters_do_not_reveal_living_roles(client):
+    with app.app_context():
+        mafia = Player(id=101, name="Mafia", role="Mafia", role_info={"team": "mafia"}, is_alive=True)
+        don = Player(id=102, name="Don", role="Don", role_info={"team": "mafia"}, is_alive=True)
+        sheriff = Player(id=103, name="Sheriff", role="Sheriff", role_info={"team": "town"}, is_alive=True)
+        ghost = Player(id=104, name="Ghost", role="Doctor", role_info={"team": "town"}, is_alive=False)
+        players = [mafia, don, sheriff, ghost]
+
+        public = serialize_public_players(players)
+        assert all("role" not in player for player in public)
+
+        mafia_view = serialize_player_view(players, mafia)
+        assert {player["id"] for player in mafia_view if "role" in player} == {mafia.id, don.id}
+
+        sheriff_view = serialize_player_view(players, sheriff)
+        assert {player["id"] for player in sheriff_view if "role" in player} == {sheriff.id}
+
+        ghost_view = serialize_player_view(players, ghost)
+        assert all("role" in player for player in ghost_view)
+
+
+def test_night_action_events_are_routed_only_to_allowed_rooms(client):
+    from websock import socketio
+    with app.app_context():
+        room = Room(host_code="PRIVATE1", status="started", phase="night")
+        mafia = Player(room_code="PRIVATE1", name="Mafia", role="Mafia", role_info={"team": "mafia"})
+        target = Player(room_code="PRIVATE1", name="Target", role="Villager", role_info={"team": "town"})
+        observer = Player(room_code="PRIVATE1", name="Observer", role="Villager", role_info={"team": "town"})
+        room.players = [mafia, target, observer]
+        db.session.add(room)
+        db.session.commit()
+        mafia_id, target_id, observer_id = mafia.id, target.id, observer.id
+
+    host_socket = socketio.test_client(app)
+    mafia_socket = socketio.test_client(app)
+    observer_socket = socketio.test_client(app)
+    try:
+        host_socket.emit("join_room", {"room": "PRIVATE1", "client_type": "host"})
+        mafia_socket.emit("join_room", {"room": "PRIVATE1", "player_id": mafia_id})
+        observer_socket.emit("join_room", {"room": "PRIVATE1", "player_id": observer_id})
+        host_socket.get_received()
+        mafia_socket.get_received()
+        observer_socket.get_received()
+
+        result = mafia_socket.emit(
+            "mafia_select_target",
+            {"room": "PRIVATE1", "player_id": mafia_id, "target_id": target_id},
+            callback=True,
+        )
+        assert result["success"] is True
+
+        host_events = {event["name"] for event in host_socket.get_received()}
+        mafia_events = {event["name"] for event in mafia_socket.get_received()}
+        observer_events = {event["name"] for event in observer_socket.get_received()}
+        assert {"mafia_target_updated", "night_action_updated"} <= host_events
+        assert "mafia_target_updated" in mafia_events
+        assert "night_action_updated" not in mafia_events
+        assert "mafia_target_updated" not in observer_events
+        assert "night_action_updated" not in observer_events
+    finally:
+        host_socket.disconnect()
+        mafia_socket.disconnect()
+        observer_socket.disconnect()
+
+
+def test_duplicate_mafia_and_maniac_attack_is_one_death(client):
+    from app import handle_mafia_select_target, handle_maniac_select_target
+    with app.app_context():
+        room = Room(host_code="DUPE1", status="started", phase="night", day_number=1)
+        mafia = Player(room_code="DUPE1", name="Mafia", role="Mafia", role_info={"team": "mafia"})
+        maniac = Player(room_code="DUPE1", name="Maniac", role="Maniac", role_info={"team": "neutral"})
+        victim = Player(room_code="DUPE1", name="Victim", role="Villager", role_info={"team": "town"})
+        witness = Player(room_code="DUPE1", name="Witness", role="Villager", role_info={"team": "town"})
+        room.players = [mafia, maniac, victim, witness]
+        db.session.add(room)
+        db.session.commit()
+        victim_id = victim.id
+
+        assert handle_mafia_select_target({"room": "DUPE1", "player_id": mafia.id, "target_id": victim_id})["success"]
+        assert handle_maniac_select_target({"room": "DUPE1", "player_id": maniac.id, "target_id": victim_id})["success"]
+
+    result = client.post("/host/set-phase/DUPE1/day").get_json()
+    assert len(result["victims_eliminated"]) == 1
+    assert result["victims_eliminated"][0]["id"] == victim_id
+    assert result["victims_eliminated"][0]["sources"] == ["mafia", "maniac"]

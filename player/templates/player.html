@@ -208,13 +208,12 @@
 <script src="{{ url_for('static', filename='js/glass-shot.js') }}?v=3.0.0"></script>
 <script>
     const socket = io();
-    const playerName = "{{ player.name }}";
     const playerId = {{ player.id }};
-    const roomCode = "{{ player.room_code }}";
+    const roomCode = {{ player.room_code | tojson }};
     const initialGamePhase = {{ initial_phase | tojson }};
     let currentGamePhase = initialGamePhase;
     let isPlayerAlive = {{ 'true' if player.is_alive else 'false' }};
-    let currentRoleKey = "{{ player.role.lower() if player.role else '' }}";
+    let currentRoleKey = {{ (player.role.lower() if player.role else '') | tojson }};
     let myCurrentVote = null;
     let votingInterval = null;
     let votingActive = false;
@@ -265,7 +264,7 @@
         const roleDesc = document.getElementById('role-desc');
 
         if (currentRoleInfo && currentRoleInfo.is_custom) {
-            const roleColor = currentRoleInfo.color || '#3a86ff';
+            const roleColor = safeRoleColor(currentRoleInfo.color);
             card.className = 'card-inner theme-custom';
             card.style.setProperty('--custom-role-color', roleColor);
 
@@ -281,8 +280,7 @@
                 roleTeam.style.color = roleColor;
             }
             if (roleIcon) {
-                const iconName = currentRoleInfo.icon || 'fa-mask';
-                const iconClass = iconName.startsWith('fa-') ? `fa-solid ${iconName}` : `fa-solid fa-${iconName}`;
+                const iconClass = `fa-solid ${safeRoleIcon(currentRoleInfo.icon)}`;
                 roleIcon.innerHTML = `<i class="${iconClass}"></i>`;
                 roleIcon.style.borderColor = roleColor;
                 roleIcon.style.color = roleColor;
@@ -290,7 +288,7 @@
             }
             if (roleDesc) {
                 const abilityText = currentRoleInfo.desc || t('waiting_role_deal');
-                roleDesc.innerHTML = `<strong>${t('ability_label') || 'Qabiliyyət'}:</strong> ${abilityText}`;
+                roleDesc.innerHTML = `<strong>${escapeNightText(t('ability_label') || 'Qabiliyyət')}:</strong> ${escapeNightText(abilityText)}`;
             }
         } else {
             card.className = `card-inner theme-${key}`;
@@ -334,7 +332,7 @@
 
     // Initialize with current role if already set
     {% if player.role %}
-    updateRoleDisplay("{{ player.role }}", currentRoleInfo);
+    updateRoleDisplay({{ player.role | tojson }}, currentRoleInfo);
     {% endif %}
 
     function flipCard() {
@@ -406,8 +404,8 @@
                 btn.dataset.id = c.id;
                 btn.innerHTML = `
                     <div class="vote-btn-left">
-                        <div class="vote-avatar-icon">${c.name.charAt(0).toUpperCase()}</div>
-                        <span>${c.name}</span>
+                        <div class="vote-avatar-icon">${escapeNightText(c.name.charAt(0).toUpperCase())}</div>
+                        <span>${escapeNightText(c.name)}</span>
                     </div>
                     <div class="vote-radio-icon">
                         <i class="fa-regular fa-circle"></i>
@@ -525,6 +523,30 @@
         return span.innerHTML;
     }
 
+    function safeRoleKey(value) {
+        return String(value || '').toLowerCase().replace(/[^a-z0-9_-]/g, '') || 'custom';
+    }
+
+    function safeRoleColor(value) {
+        return /^#[0-9a-f]{6}$/i.test(String(value || '')) ? value : '#3a86ff';
+    }
+
+    function safeRoleIcon(value) {
+        const icon = String(value || 'fa-user-secret');
+        return /^fa-[a-z0-9-]+$/i.test(icon) ? icon : 'fa-user-secret';
+    }
+
+    function mergePublicRoster(players) {
+        const previous = new Map(latestPlayersList.map(player => [player.id, player]));
+        return (players || []).map(player => {
+            const known = previous.get(player.id) || {};
+            const merged = { ...player };
+            if (!merged.role && known.role) merged.role = known.role;
+            if (!merged.role_info && known.role_info) merged.role_info = known.role_info;
+            return merged;
+        });
+    }
+
     function isMafiaMember() {
         if (currentRoleInfo && currentRoleInfo.team === 'mafia') return true;
         const r = (currentRoleKey || '').toLowerCase();
@@ -540,7 +562,7 @@
             ? (found ? 'sheriff_result_mafia' : 'sheriff_result_civilian')
             : (found ? 'don_result_sheriff' : 'don_result_not_sheriff');
         box.className = `night-investigation-result ${found ? 'danger' : 'safe'}`;
-        box.innerHTML = `<i class="fa-solid ${found ? 'fa-triangle-exclamation' : 'fa-shield-check'}"></i><span><strong>${escapeNightText(result.target_name)}</strong> — ${escapeNightText(t(statusKey))}</span>`;
+        box.innerHTML = `<i class="fa-solid ${found ? 'fa-triangle-exclamation' : 'fa-circle-check'}"></i><span><strong>${escapeNightText(result.target_name)}</strong> — ${escapeNightText(t(statusKey))}</span>`;
         box.hidden = false;
     }
 
@@ -687,7 +709,7 @@
             btn.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     <i class="fa-solid fa-user" style="color: ${isSel ? 'var(--role-mafia)' : 'var(--text-muted)'}; font-size: 0.8rem;"></i>
-                    <span style="overflow: hidden; text-overflow: ellipsis;">${c.name}</span>
+                    <span style="overflow: hidden; text-overflow: ellipsis;">${escapeNightText(c.name)}</span>
                 </div>
                 <div class="mafia-target-radio">
                     <i class="fa-regular ${isSel ? 'fa-circle-dot' : 'fa-circle'}" style="color: ${isSel ? 'var(--role-mafia)' : 'var(--text-muted)'}; font-size: 0.92rem;"></i>
@@ -767,7 +789,7 @@
         if (reopen && data.phase !== 'night') reopen.style.display = 'none';
 
         if (data.all_players) {
-            latestPlayersList = data.all_players;
+            latestPlayersList = mergePublicRoster(data.all_players);
         }
 
         // Refresh the clean role-screen texture before the night shroud is used.
@@ -797,9 +819,6 @@
                 showToast(`${t('night_victims_prefix')} ${victims.map(victim => victim.name).join(', ')}`, 'error', 8000);
             }
 
-            if (!isPlayerAlive && data.all_players) {
-                renderGhostRoster(data.all_players);
-            }
         }
 
         if (data.players_saved && data.players_saved.length) {
@@ -812,7 +831,7 @@
 
         if (data.phase === 'night') {
             resetNightActionUI();
-            showNightRoleSections(data.all_players || latestPlayersList);
+            showNightRoleSections(latestPlayersList);
 
             icon.innerHTML = '<i class="fa-solid fa-moon"></i>';
             title.textContent = t('night_overlay_title');
@@ -839,14 +858,6 @@
             sendPushNotification(t('voting_overlay_title'), t('voting_overlay_subtitle'));
         }
 
-        if (data.stats && data.stats.winner) {
-            showGameResults({
-                winner: data.stats.winner,
-                stats: data.stats,
-                roster: data.all_players,
-                duration_seconds: data.stats.duration_seconds || 0
-            });
-        }
     });
 
     if (initialGamePhase === 'night') {
@@ -862,9 +873,12 @@
     socket.on('update_roles', function (data) {
         if (data.players) {
             latestPlayersList = data.players;
-            const me = data.players.find(p => p.name === playerName || p.id === playerId);
+            const me = data.players.find(p => p.id === playerId);
             if (me && me.role) {
                 updateRoleDisplay(me.role, me.role_info);
+                // Re-register after role assignment so newly assigned Mafia
+                // members immediately receive their private team target updates.
+                ensureJoinedRoom();
                 sounds.playCardDeal();
                 const roleName = (me.role_info && me.role_info.is_custom) ? (me.role_info.name || me.role) : (t('role_' + me.role.toLowerCase()) || me.role);
                 showToast(`${t('role_assigned_toast')} ${roleName}!`, 'success', 5000);
@@ -878,6 +892,12 @@
                 renderGhostRoster(data.players);
             }
         }
+    });
+
+    socket.on('player_roster_updated', function (data) {
+        if (!data.players) return;
+        latestPlayersList = data.players;
+        if (!isPlayerAlive) renderGhostRoster(data.players);
     });
 
     function renderGhostRoster(players) {
@@ -897,14 +917,13 @@
             let roleTag = '';
             if (p.role) {
                 if (p.role_info && p.role_info.is_custom) {
-                    const color = p.role_info.color || '#3a86ff';
-                    const rawIcon = p.role_info.icon || 'fa-user-secret';
-                    const iconClass = rawIcon.startsWith('fa-') ? rawIcon : 'fa-' + rawIcon;
-                    roleTag = `<span class="player-role-tag role-tag-custom" style="margin: 0; padding: 2px 8px; font-size: 0.75rem; background: ${color}22; color: ${color}; border: 1px solid ${color}66;"><i class="fa-solid ${iconClass}" style="font-size: 0.75rem;"></i> ${p.role}</span>`;
+                    const color = safeRoleColor(p.role_info.color);
+                    const iconClass = safeRoleIcon(p.role_info.icon);
+                    roleTag = `<span class="player-role-tag role-tag-custom" style="margin: 0; padding: 2px 8px; font-size: 0.75rem; background: ${color}22; color: ${color}; border: 1px solid ${color}66;"><i class="fa-solid ${iconClass}" style="font-size: 0.75rem;"></i> ${escapeNightText(p.role)}</span>`;
                 } else {
-                    const roleKey = p.role.toLowerCase();
+                    const roleKey = safeRoleKey(p.role);
                     const roleTranslated = t('role_' + roleKey) || p.role;
-                    roleTag = `<span class="player-role-tag role-tag-${roleKey}" style="margin: 0; padding: 2px 8px; font-size: 0.75rem;">${roleTranslated}</span>`;
+                    roleTag = `<span class="player-role-tag role-tag-${roleKey}" style="margin: 0; padding: 2px 8px; font-size: 0.75rem;">${escapeNightText(roleTranslated)}</span>`;
                 }
             }
             const statusBadge = p.is_alive 
@@ -914,7 +933,7 @@
             row.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <i class="fa-solid fa-user-secret" style="color: var(--text-muted);"></i>
-                    <strong style="color: #ffffff;">${p.name}</strong>
+                    <strong style="color: #ffffff;">${escapeNightText(p.name)}</strong>
                     ${roleTag}
                 </div>
                 ${statusBadge}
@@ -946,18 +965,6 @@
             }
         }
 
-        if (data.all_players && (!isPlayerAlive || data.player_id === playerId)) {
-            renderGhostRoster(data.all_players);
-        }
-
-        if (data.stats && data.stats.winner) {
-            showGameResults({
-                winner: data.stats.winner,
-                stats: data.stats,
-                roster: data.all_players,
-                duration_seconds: data.stats.duration_seconds || 0
-            });
-        }
     });
 
     socket.on('game_ended', function (data) {
@@ -1071,14 +1078,13 @@
                 let roleTag = '';
                 if (p.role) {
                     if (p.role_info && p.role_info.is_custom) {
-                        const color = p.role_info.color || '#3a86ff';
-                        const rawIcon = p.role_info.icon || 'fa-user-secret';
-                        const iconClass = rawIcon.startsWith('fa-') ? rawIcon : 'fa-' + rawIcon;
-                        roleTag = `<span class="player-role-tag role-tag-custom" style="background: ${color}22; color: ${color}; border: 1px solid ${color}66;"><i class="fa-solid ${iconClass}" style="font-size: 0.75rem;"></i> ${p.role}</span>`;
+                        const color = safeRoleColor(p.role_info.color);
+                        const iconClass = safeRoleIcon(p.role_info.icon);
+                        roleTag = `<span class="player-role-tag role-tag-custom" style="background: ${color}22; color: ${color}; border: 1px solid ${color}66;"><i class="fa-solid ${iconClass}" style="font-size: 0.75rem;"></i> ${escapeNightText(p.role)}</span>`;
                     } else {
-                        const roleKey = p.role.toLowerCase();
+                        const roleKey = safeRoleKey(p.role);
                         const roleTranslated = t('role_' + roleKey) || p.role;
-                        roleTag = `<span class="player-role-tag role-tag-${roleKey}">${roleTranslated}</span>`;
+                        roleTag = `<span class="player-role-tag role-tag-${roleKey}">${escapeNightText(roleTranslated)}</span>`;
                     }
                 }
 
@@ -1090,8 +1096,8 @@
 
                 row.innerHTML = `
                     <div class="results-player-left">
-                        <div class="results-player-avatar">${p.name.charAt(0).toUpperCase()}</div>
-                        <div class="results-player-name">${p.name}${youBadge}</div>
+                        <div class="results-player-avatar">${escapeNightText(p.name.charAt(0).toUpperCase())}</div>
+                        <div class="results-player-name">${escapeNightText(p.name)}${youBadge}</div>
                     </div>
                     <div class="results-player-right">
                         ${roleTag}

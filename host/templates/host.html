@@ -394,11 +394,25 @@
     let currentDayNum = {{ day_number }};
     let currentVotingWinnerId = null;
     const initialNightMonitor = {{ night_monitor | tojson }};
+    let latestNightMonitor = initialNightMonitor;
 
     function escapeMonitorText(value) {
         const span = document.createElement('span');
         span.textContent = value == null ? '' : String(value);
         return span.innerHTML;
+    }
+
+    function safeHostRoleKey(value) {
+        return String(value || '').toLowerCase().replace(/[^a-z0-9_-]/g, '') || 'custom';
+    }
+
+    function safeHostRoleColor(value) {
+        return /^#[0-9a-f]{6}$/i.test(String(value || '')) ? value : '#3a86ff';
+    }
+
+    function safeHostRoleIcon(value) {
+        const icon = String(value || 'fa-user-secret');
+        return /^fa-[a-z0-9-]+$/i.test(icon) ? icon : 'fa-user-secret';
     }
 
     const nightMonitorIds = {
@@ -411,6 +425,7 @@
 
     function renderNightMonitor(payload) {
         if (!payload) return;
+        latestNightMonitor = payload;
         const targets = payload.targets || {};
         const summary = payload.summary || { actions: {}, required_total: 0, completed_total: 0, all_complete: false };
         Object.entries(nightMonitorIds).forEach(([action, id]) => {
@@ -447,7 +462,7 @@
     window.addEventListener('languageChanged', () => {
         updateStatusPill();
         updateVillagerCount();
-        renderNightMonitor(initialNightMonitor);
+        renderNightMonitor(latestNightMonitor);
     });
 
     renderNightMonitor(initialNightMonitor);
@@ -543,10 +558,11 @@
         const display = document.getElementById('host-mafia-target-display');
         if (display) {
             if (data.target_name) {
+                const targetName = escapeMonitorText(data.target_name);
                 if (data.is_don_decision) {
-                    display.innerHTML = `<span style="color: var(--role-don); font-weight: 800;"><i class="fa-solid fa-crown" style="margin-right: 4px;"></i> ${data.target_name} (${t('don_badge') || 'Don'})</span>`;
+                    display.innerHTML = `<span style="color: var(--role-don); font-weight: 800;"><i class="fa-solid fa-crown" style="margin-right: 4px;"></i> ${targetName} (${escapeMonitorText(t('don_badge') || 'Don')})</span>`;
                 } else {
-                    display.innerHTML = `<span style="color: var(--role-mafia); font-weight: 800;"><i class="fa-solid fa-crosshairs" style="margin-right: 4px;"></i> ${data.target_name}</span>`;
+                    display.innerHTML = `<span style="color: var(--role-mafia); font-weight: 800;"><i class="fa-solid fa-crosshairs" style="margin-right: 4px;"></i> ${targetName}</span>`;
                 }
             } else {
                 display.innerHTML = `<span data-i18n="waiting_mafia_choice">${t('waiting_mafia_choice')}</span>`;
@@ -650,14 +666,13 @@
                 let roleTag = '';
                 if (p.role) {
                     if (p.role_info && p.role_info.is_custom) {
-                        const color = p.role_info.color || '#3a86ff';
-                        const rawIcon = p.role_info.icon || 'fa-user-secret';
-                        const iconClass = rawIcon.startsWith('fa-') ? rawIcon : 'fa-' + rawIcon;
-                        roleTag = `<span class="player-role-tag role-tag-custom" style="background: ${color}22; color: ${color}; border: 1px solid ${color}66;"><i class="fa-solid ${iconClass}" style="font-size: 0.75rem;"></i> ${p.role}</span>`;
+                        const color = safeHostRoleColor(p.role_info.color);
+                        const iconClass = safeHostRoleIcon(p.role_info.icon);
+                        roleTag = `<span class="player-role-tag role-tag-custom" style="background: ${color}22; color: ${color}; border: 1px solid ${color}66;"><i class="fa-solid ${iconClass}" style="font-size: 0.75rem;"></i> ${escapeMonitorText(p.role)}</span>`;
                     } else {
-                        const roleKey = p.role.toLowerCase();
+                        const roleKey = safeHostRoleKey(p.role);
                         const roleTranslated = t('role_' + roleKey) || p.role;
-                        roleTag = `<span class="player-role-tag role-tag-${roleKey}">${roleTranslated}</span>`;
+                        roleTag = `<span class="player-role-tag role-tag-${roleKey}">${escapeMonitorText(roleTranslated)}</span>`;
                     }
                 }
                 const statusTag = p.is_alive 
@@ -666,8 +681,8 @@
 
                 row.innerHTML = `
                     <div class="results-player-left">
-                        <div class="results-player-avatar">${p.name.charAt(0).toUpperCase()}</div>
-                        <div class="results-player-name">${p.name}</div>
+                        <div class="results-player-avatar">${escapeMonitorText(p.name.charAt(0).toUpperCase())}</div>
+                        <div class="results-player-name">${escapeMonitorText(p.name)}</div>
                     </div>
                     <div class="results-player-right">
                         ${roleTag}
@@ -728,7 +743,7 @@
             row.id = `tally-row-${c.id}`;
             row.innerHTML = `
                 <div class="tally-header">
-                    <span>${c.name}</span>
+                    <span>${escapeMonitorText(c.name)}</span>
                     <span id="tally-count-${c.id}">0</span>
                 </div>
                 <div class="tally-bar-track">
@@ -791,7 +806,7 @@
             sounds.playTick();
         } else {
             currentVotingWinnerId = data.winner_id;
-            winnerText.innerHTML = `<strong>${data.winner_name}</strong> (${data.max_votes} səs) ${t('voted_out_desc')}`;
+            winnerText.textContent = `${data.winner_name} (${data.max_votes} səs) ${t('voted_out_desc')}`;
             if (elimBtn) elimBtn.style.display = 'inline-flex';
             if (pardonBtn) pardonBtn.style.display = 'inline-flex';
             if (skipBtn) skipBtn.style.display = 'inline-flex';
@@ -851,7 +866,7 @@
                 chip.dataset.id = p.id;
                 chip.dataset.name = p.name;
                 chip.onclick = function() { toggleCandidateChip(this); };
-                chip.innerHTML = `<i class="fa-solid fa-check"></i> <span>${p.name}</span>`;
+                chip.innerHTML = `<i class="fa-solid fa-check"></i> <span>${escapeMonitorText(p.name)}</span>`;
                 chipsContainer.appendChild(chip);
             });
         }
@@ -873,14 +888,13 @@
                 let roleTag = '';
                 if (player.role) {
                     if (player.role_info && player.role_info.is_custom) {
-                        const color = player.role_info.color || '#3a86ff';
-                        const rawIcon = player.role_info.icon || 'fa-user-secret';
-                        const iconClass = rawIcon.startsWith('fa-') ? rawIcon : 'fa-' + rawIcon;
-                        roleTag = `<span class="player-role-tag role-tag-custom" style="background: ${color}22; color: ${color}; border: 1px solid ${color}66;"><i class="fa-solid ${iconClass}" style="font-size: 0.75rem;"></i> ${player.role}</span>`;
+                        const color = safeHostRoleColor(player.role_info.color);
+                        const iconClass = safeHostRoleIcon(player.role_info.icon);
+                        roleTag = `<span class="player-role-tag role-tag-custom" style="background: ${color}22; color: ${color}; border: 1px solid ${color}66;"><i class="fa-solid ${iconClass}" style="font-size: 0.75rem;"></i> ${escapeMonitorText(player.role)}</span>`;
                     } else {
-                        const roleKey = player.role.toLowerCase();
+                        const roleKey = safeHostRoleKey(player.role);
                         const roleTranslated = t('role_' + roleKey) || player.role;
-                        roleTag = `<span class="player-role-tag role-tag-${roleKey}">${roleTranslated}</span>`;
+                        roleTag = `<span class="player-role-tag role-tag-${roleKey}">${escapeMonitorText(roleTranslated)}</span>`;
                     }
                 }
                 const deadClass = (!player.is_alive) ? 'player-dead' : '';
@@ -898,9 +912,9 @@
 
                 item.innerHTML = `
                     <div class="player-info">
-                        <div class="player-avatar">${player.name.charAt(0).toUpperCase()}</div>
+                        <div class="player-avatar">${escapeMonitorText(player.name.charAt(0).toUpperCase())}</div>
                         <div>
-                            <div class="player-name ${deadClass}">${player.name}</div>
+                            <div class="player-name ${deadClass}">${escapeMonitorText(player.name)}</div>
                             ${roleTag}
                         </div>
                     </div>
@@ -1232,6 +1246,7 @@
         .then(data => {
             if (data.success && data.role) {
                 const cr = data.role;
+                const customRoleColor = safeHostRoleColor(cr.color);
                 const grid = document.getElementById('roles-stepper-grid');
                 if (grid) {
                     const row = document.createElement('div');
@@ -1239,8 +1254,8 @@
                     row.id = `custom-role-item-${cr.id}`;
                     row.innerHTML = `
                         <span class="role-stepper-label">
-                            <span class="role-indicator" style="background: ${cr.color};"></span>
-                            <span>${cr.name}</span>
+                            <span class="role-indicator" style="background: ${customRoleColor};"></span>
+                            <span>${escapeMonitorText(cr.name)}</span>
                         </span>
                         <div class="controls-stepper">
                             <button type="button" class="stepper-btn" id="btn-minus-${cr.id}" aria-label="Xüsusi rol sayını azalt və ya rolu sil" onclick="handleCustomRoleMinus('${cr.id}')"><i class="fa-solid fa-trash-can" style="color: var(--color-danger); font-size: 0.82rem;"></i></button>

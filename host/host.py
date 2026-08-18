@@ -13,6 +13,43 @@ host_bp = Blueprint(
 )
 
 
+def _is_mafia_player(player):
+    role = (player.role or "").strip().lower()
+    role_info = player.role_info if isinstance(player.role_info, dict) else {}
+    return role in ("mafia", "don") or role_info.get("team") == "mafia"
+
+
+def serialize_public_players(players):
+    return [
+        {"id": player.id, "name": player.name, "is_alive": player.is_alive}
+        for player in players
+    ]
+
+
+def serialize_player_view(players, viewer):
+    if not viewer.is_alive:
+        return [player.to_dict() for player in players]
+
+    viewer_is_mafia = _is_mafia_player(viewer)
+    result = []
+    for player in players:
+        item = {"id": player.id, "name": player.name, "is_alive": player.is_alive}
+        if player.id == viewer.id or (viewer_is_mafia and _is_mafia_player(player)):
+            item["role"] = player.role
+            item["role_info"] = player.role_info or {}
+        result.append(item)
+    return result
+
+
+def emit_private_player_rosters(players):
+    for viewer in players:
+        socketio.emit(
+            "player_roster_updated",
+            {"players": serialize_player_view(players, viewer)},
+            room=f"player:{viewer.id}",
+        )
+
+
 def calculate_game_stats(players):
     mafia_count = 0
     town_count = 0
@@ -203,7 +240,7 @@ def start_game(code: str):
     assign_roles(players_dict_list, roles_config, room.custom_roles)
 
     for p_dict in players_dict_list:
-        p = Player.query.get(p_dict["id"])
+        p = db.session.get(Player, p_dict["id"])
         if p:
             p.role = p_dict["role"]
             p.role_info = p_dict.get("role_info", {})
@@ -219,16 +256,28 @@ def start_game(code: str):
     from app import active_night_actions, create_night_action_state
     active_night_actions[code] = create_night_action_state()
 
+    public_players = serialize_public_players(room.players)
     socketio.emit(
         "update_roles",
         {
-            "players": [p.to_dict() for p in room.players],
+            "players": public_players,
             "status": "started",
             "phase": "day",
             "day_number": 1
         },
         room=code
     )
+    for player in room.players:
+        socketio.emit(
+            "update_roles",
+            {
+                "players": serialize_player_view(room.players, player),
+                "status": "started",
+                "phase": "day",
+                "day_number": 1,
+            },
+            room=f"player:{player.id}",
+        )
 
     return redirect(url_for("host_bp.host", code=code))
 
@@ -277,7 +326,6 @@ def set_phase(code: str, phase: str):
             result = {
                 "id": target.id,
                 "name": target.name,
-                "role": target.role,
                 "sources": sorted(sources),
             }
             if target.id in protected_ids:
@@ -309,22 +357,31 @@ def set_phase(code: str, phase: str):
         "no_victims": phase == "day" and prev_phase == "night" and not victims_eliminated,
     } if phase == "day" and prev_phase == "night" else None
     night_monitor = get_night_monitor_payload(code) if phase == "night" else None
+    public_victims = [{"id": item["id"], "name": item["name"]} for item in victims_eliminated]
+    public_saved = [{"id": item["id"], "name": item["name"]} for item in players_saved]
+    public_night_result = {
+        "victims": public_victims,
+        "saved": public_saved,
+        "no_victims": night_result["no_victims"],
+    } if night_result else None
 
+    public_players = serialize_public_players(players)
     socketio.emit(
         "phase_changed",
         {
             "phase": phase,
             "day_number": room.day_number,
             "stats": stats,
-            "victim_eliminated": victim_eliminated,
-            "victims_eliminated": victims_eliminated,
-            "players_saved": players_saved,
-            "night_result": night_result,
+            "victim_eliminated": public_victims[0] if public_victims else None,
+            "victims_eliminated": public_victims,
+            "players_saved": public_saved,
+            "night_result": public_night_result,
             "night_monitor": night_monitor,
-            "all_players": [p.to_dict() for p in players]
+            "all_players": public_players
         },
         room=code
     )
+    emit_private_player_rosters(players)
 
     if stats.get("winner"):
         check_and_trigger_game_end(room, stats)
@@ -356,6 +413,7 @@ def toggle_player_status(code: str, player_id: int):
     duration_seconds = max(0, int((datetime.utcnow() - started).total_seconds()))
     stats["duration_seconds"] = duration_seconds
 
+    public_players = serialize_public_players(players)
     socketio.emit(
         "update_player_status",
         {
@@ -363,15 +421,16 @@ def toggle_player_status(code: str, player_id: int):
             "player_name": player.name,
             "is_alive": player.is_alive,
             "stats": stats,
-            "all_players": [p.to_dict() for p in players]
+            "all_players": public_players
         },
         room=code
     )
+    emit_private_player_rosters(players)
 
     if stats.get("winner"):
         check_and_trigger_game_end(room, stats)
 
-    return jsonify({"success": True, "player_id": player.id, "is_alive": player.is_alive, "stats": stats, "all_players": [p.to_dict() for p in players]})
+    return jsonify({"success": True, "player_id": player.id, "is_alive": player.is_alive, "stats": stats, "all_players": public_players})
 
 
 @host_bp.post("/end-game/<code>")

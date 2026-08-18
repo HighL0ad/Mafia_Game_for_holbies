@@ -109,6 +109,7 @@ def _is_mafia_member(player):
 
 
 def _night_context(data, role_check, allow_self=False):
+    data = data or {}
     room_code = str(data.get("room", "")).strip()
     actor_id = _as_int(data.get("voter_id", data.get("player_id")))
     target_id = _as_int(data.get("target_id"))
@@ -260,14 +261,14 @@ def handle_mafia_select_target(data):
             target_name = p.name
 
     mafia_payload = {
-            "target_id": final_target_id,
-            "target_name": target_name,
-            "voter_id": voter.id,
-            "voter_name": voter.name if voter else "",
-            "is_don_decision": is_don_decision,
-            "has_living_don": bool(living_don),
-            "don_id": living_don.id if living_don else None
-        }
+        "target_id": final_target_id,
+        "target_name": target_name,
+        "voter_id": voter.id,
+        "voter_name": voter.name,
+        "is_don_decision": is_don_decision,
+        "has_living_don": bool(living_don),
+        "don_id": living_don.id if living_don else None
+    }
     socketio.emit("mafia_target_updated", mafia_payload, room=f"mafia:{room}")
     socketio.emit("mafia_target_updated", mafia_payload, room=f"host:{room}")
     _emit_night_action_update(room, "mafia", voter, db.session.get(Player, final_target_id))
@@ -348,6 +349,7 @@ def handle_don_check_sheriff(data):
 
 @socketio.on("get_night_action_state")
 def handle_get_night_action_state(data):
+    data = data or {}
     room = str(data.get("room", "")).strip()
     player_id = _as_int(data.get("player_id"))
     player = Player.query.filter_by(id=player_id, room_code=room, is_alive=True).first()
@@ -385,6 +387,7 @@ def handle_get_night_action_state(data):
 
 @socketio.on("join_room")
 def handle_join_room(data):
+    data = data or {}
     room = str(data.get("room", ""))
     if room:
         join_room(room)
@@ -401,9 +404,18 @@ def handle_join_room(data):
 
 @socketio.on("leave_room")
 def handle_leave_room(data):
+    data = data or {}
     room = str(data.get("room", ""))
     if room:
         leave_room(room)
+        if data.get("client_type") == "host":
+            leave_room(f"host:{room}")
+        player_id = _as_int(data.get("player_id"))
+        if player_id is not None:
+            leave_room(f"player:{player_id}")
+            player = Player.query.filter_by(id=player_id, room_code=room).first()
+            if player and _is_mafia_member(player):
+                leave_room(f"mafia:{room}")
 
 
 @socketio.on("start_voting")
