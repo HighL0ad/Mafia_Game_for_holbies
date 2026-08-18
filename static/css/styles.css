@@ -1936,3 +1936,98 @@ body {
     background: rgba(230, 57, 70, 0.15);
     color: var(--color-danger);
 }
+
+/* ==========================================================================
+   GUNSHOT FLASH FX & MAFIA NIGHT ACTIONS
+   ========================================================================== */
+
+.gunshot-flash-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 100000;
+    background: radial-gradient(circle at center, rgba(255, 30, 30, 0.95) 0%, rgba(180, 0, 0, 0.92) 50%, rgba(10, 0, 0, 0.98) 100%);
+    opacity: 0;
+    transition: opacity 0.05s ease-in;
+}
+
+.gunshot-flash-overlay.active {
+    animation: gunshotShatter 2.4s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+
+@keyframes gunshotShatter {
+    0% {
+        opacity: 1;
+        transform: scale(1.08);
+        filter: brightness(2.8) contrast(1.6);
+    }
+    12% {
+        opacity: 0.95;
+        transform: scale(1);
+        filter: brightness(1.2);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1);
+    }
+}
+
+.mafia-night-section {
+    margin-top: 18px;
+    background: rgba(230, 57, 70, 0.09);
+    border: 1px solid rgba(230, 57, 70, 0.35);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    text-align: left;
+    box-shadow: 0 0 25px rgba(230, 57, 70, 0.15);
+}
+
+.mafia-night-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    color: var(--role-mafia);
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+}
+
+.mafia-candidate-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+    max-height: 160px;
+    overflow-y: auto;
+}
+
+.mafia-target-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: var(--radius-sm);
+    color: #ffffff;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.mafia-target-btn:hover {
+    background: rgba(230, 57, 70, 0.2);
+    border-color: var(--role-mafia);
+}
+
+.mafia-target-btn.selected {
+    background: rgba(230, 57, 70, 0.38);
+    border-color: var(--role-mafia);
+    box-shadow: 0 0 16px rgba(230, 57, 70, 0.6);
+    color: #ffffff;
+    font-weight: 700;
+}

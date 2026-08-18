@@ -309,6 +309,61 @@ class SoundEngine {
         osc.start(now);
         osc.stop(now + 0.05);
     }
+
+    // 11. 💥 🔫 Realistic Gunshot Sound with Shockwave & Echo
+    playGunshot() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+
+        // A. Low Frequency Punch (Bass Kick Shockwave)
+        const bassOsc = this.ctx.createOscillator();
+        const bassGain = this.ctx.createGain();
+        bassOsc.type = 'sawtooth';
+        bassOsc.frequency.setValueAtTime(220, now);
+        bassOsc.frequency.exponentialRampToValueAtTime(25, now + 0.4);
+        bassGain.gain.setValueAtTime(1.0, now);
+        bassGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+        bassOsc.connect(bassGain);
+        bassGain.connect(this.ctx.destination);
+        bassOsc.start(now);
+        bassOsc.stop(now + 0.45);
+
+        // B. Noise Blast (Gunpowder explosion crack)
+        const bufferSize = this.ctx.sampleRate * 0.8;
+        const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = Math.random() * 2 - 1;
+        }
+
+        const whiteNoise = this.ctx.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+
+        // Dynamic Lowpass Filter (cracking high freq closing into dark boom)
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(3200, now);
+        filter.frequency.exponentialRampToValueAtTime(120, now + 0.6);
+
+        const noiseGain = this.ctx.createGain();
+        noiseGain.gain.setValueAtTime(1.2, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+
+        whiteNoise.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(this.ctx.destination);
+
+        whiteNoise.start(now);
+        whiteNoise.stop(now + 0.7);
+
+        // C. Intense Haptic Feedback
+        if (navigator.vibrate) {
+            navigator.vibrate([120, 40, 350]);
+        }
+    }
 }
 
 const sounds = new SoundEngine();

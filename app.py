@@ -58,11 +58,36 @@ def page_not_found(e):
 
 # In-memory Live Voting Sessions: room_code -> { "candidates": [...], "votes": { voter_id: target_id }, "open": bool }
 active_voting_sessions = {}
+# In-memory Live Night Actions: room_code -> { "mafia_target": target_id, "votes": { voter_id: target_id } }
+active_night_actions = {}
 
 
 @socketio.on("connect")
 def handle_connect():
     pass
+
+
+@socketio.on("mafia_select_target")
+def handle_mafia_select_target(data):
+    room = str(data.get("room", ""))
+    voter_id = data.get("voter_id")
+    target_id = data.get("target_id")
+    if not room:
+        return
+    if room not in active_night_actions:
+        active_night_actions[room] = {"mafia_target": None, "votes": {}}
+
+    active_night_actions[room]["votes"][voter_id] = target_id
+    active_night_actions[room]["mafia_target"] = target_id
+
+    socketio.emit(
+        "mafia_target_updated",
+        {
+            "target_id": target_id,
+            "voter_id": voter_id
+        },
+        room=room
+    )
 
 
 @socketio.on("join_room")

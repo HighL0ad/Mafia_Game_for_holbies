@@ -124,6 +124,16 @@ const TRANSLATIONS = {
         time_minutes_short: "dəq",
         time_seconds_short: "san",
         
+        // Mafia Night Kill & Gunshot
+        mafia_night_title: "🔴 Mafiya Atəşi (Hədəf seçimi)",
+        mafia_night_subtitle: "Bu gecə kimi aradan qaldırmaq istəyirsiniz?",
+        mafia_target_selected: "Mafiya hədəfi seçildi",
+        you_were_shot_title: "💥 SİZ BU GECƏ GÜLLƏLƏNDİNİZ!",
+        you_were_shot_desc: "Mafiya bu gecə sizi hədəf aldı və siz oyundan çıxarıldınız.",
+        night_victim_broadcast: "Bu gecə şəhərdə qanlı hadisə baş verdi:",
+        night_victim_elim: "mafiya tərəfindən güllələndi!",
+        night_no_victims: "Bu gecə şəhərdə heç kim öldürülmədi.",
+        
         // Custom Roles Builder
         add_custom_role_btn: "Öz rolunu yarat",
         custom_role_modal_title: "Yeni Rol Yarat",
@@ -283,6 +293,16 @@ const TRANSLATIONS = {
         time_minutes_short: "мин",
         time_seconds_short: "сек",
         
+        // Mafia Night Kill & Gunshot
+        mafia_night_title: "🔴 Выбор жертвы Мафии",
+        mafia_night_subtitle: "Кого мафия устраняет этой ночью?",
+        mafia_target_selected: "Цель мафии выбрана",
+        you_were_shot_title: "💥 ВАС ЗАСТРЕЛИЛИ ЭТОЙ НОЧЬЮ!",
+        you_were_shot_desc: "Мафия выбрала вас своей жертвой, вы выбыли из игры.",
+        night_victim_broadcast: "Итоги ночи в городе:",
+        night_victim_elim: "был застрелен мафией!",
+        night_no_victims: "Этой ночью никто не погиб.",
+        
         // Custom Roles Builder
         add_custom_role_btn: "Создать свою роль",
         custom_role_modal_title: "Конструктор роли",
@@ -441,6 +461,16 @@ const TRANSLATIONS = {
         stat_game_duration: "Match Duration:",
         time_minutes_short: "min",
         time_seconds_short: "sec",
+        
+        // Mafia Night Kill & Gunshot
+        mafia_night_title: "🔴 Mafia Night Target",
+        mafia_night_subtitle: "Who does the Mafia eliminate tonight?",
+        mafia_target_selected: "Mafia target selected",
+        you_were_shot_title: "💥 YOU WERE SHOT TONIGHT!",
+        you_were_shot_desc: "The Mafia targeted and eliminated you tonight.",
+        night_victim_broadcast: "Morning News:",
+        night_victim_elim: "was shot by the Mafia!",
+        night_no_victims: "Nobody was killed tonight.",
         
         // Custom Roles Builder
         add_custom_role_btn: "Create Custom Role",

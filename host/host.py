@@ -193,22 +193,54 @@ def set_phase(code: str, phase: str):
     if phase not in ("day", "voting", "night"):
         return jsonify({"error": "Invalid phase"}), 400
 
-    if phase == "day" and room.phase == "night":
+    prev_phase = room.phase
+    victim_eliminated = None
+
+    # When transitioning from Night to Day, resolve night kill
+    if phase == "day" and prev_phase == "night":
         room.day_number = (room.day_number or 1) + 1
+        from app import active_night_actions
+        night_data = active_night_actions.get(code, {})
+        target_id = night_data.get("mafia_target")
+        if target_id:
+            victim = Player.query.filter_by(id=target_id, room_code=code).first()
+            if victim and victim.is_alive:
+                victim.is_alive = False
+                victim_eliminated = {
+                    "id": victim.id,
+                    "name": victim.name,
+                    "role": victim.role
+                }
+                db.session.commit()
+            active_night_actions[code] = {"mafia_target": None, "votes": {}}
 
     room.phase = phase
     db.session.commit()
+
+    stats = calculate_game_stats(room.players)
+    started = room.started_at or room.created_at or datetime.utcnow()
+    duration_seconds = max(0, int((datetime.utcnow() - started).total_seconds()))
+    stats["duration_seconds"] = duration_seconds
 
     socketio.emit(
         "phase_changed",
         {
             "phase": phase,
-            "day_number": room.day_number
+            "day_number": room.day_number,
+            "stats": stats,
+            "victim_eliminated": victim_eliminated,
+            "all_players": [p.to_dict() for p in room.players]
         },
         room=code
     )
 
-    return jsonify({"success": True, "phase": phase, "day_number": room.day_number})
+    return jsonify({
+        "success": True, 
+        "phase": phase, 
+        "day_number": room.day_number, 
+        "victim_eliminated": victim_eliminated,
+        "stats": stats
+    })
 
 
 @host_bp.post("/toggle-player-status/<code>/<int:player_id>")

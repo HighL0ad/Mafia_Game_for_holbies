@@ -105,10 +105,25 @@
     <p class="phase-overlay-desc" id="phase-overlay-desc" data-i18n="night_overlay_subtitle">
         Bütün şəhər yatır. Gözlərinizi yumun və aparıcını dinləyin.
     </p>
+
+    <!-- Mafia Night Target Selection (Visible only to Mafia team members during night) -->
+    <div id="mafia-night-section" class="mafia-night-section" style="display: none; width: 100%; max-width: 380px; box-sizing: border-box;">
+        <div class="mafia-night-header">
+            <i class="fa-solid fa-crosshairs"></i> <span data-i18n="mafia_night_title">🔴 Mafiya Atəşi (Hədəf seçimi)</span>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 0.82rem; margin: 0 0 10px 0;" data-i18n="mafia_night_subtitle">
+            Bu gecə kimi aradan qaldırmaq istəyirsiniz?
+        </p>
+        <div id="mafia-candidate-list" class="mafia-candidate-list"></div>
+    </div>
+
     <button type="button" class="btn btn-secondary mt-4" style="max-width: 220px;" onclick="closePhaseOverlay()">
         <i class="fa-solid fa-eye"></i> <span data-i18n="peek_role">Rola baxmaq</span>
     </button>
 </div>
+
+<!-- Gunshot Flash FX Overlay -->
+<div id="gunshot-flash-overlay" class="gunshot-flash-overlay"></div>
 
 <!-- Live Voting Modal for Players -->
 <div id="player-voting-modal" class="player-voting-modal" style="display: none;">
@@ -403,13 +418,134 @@
     });
 
     // Listen to Phase Changes (Day / Voting / Night)
+    let latestPlayersList = [];
+    let selectedMafiaTargetId = null;
+
+    function isMafiaMember() {
+        if (currentRoleInfo && currentRoleInfo.team === 'mafia') return true;
+        const r = (currentRoleKey || '').toLowerCase();
+        return r === 'mafia' || r === 'don';
+    }
+
+    function renderMafiaNightTargetList(players) {
+        const list = document.getElementById('mafia-candidate-list');
+        if (!list) return;
+        list.innerHTML = '';
+
+        const candidatePool = (players && players.length > 0) ? players : latestPlayersList;
+        const validTargets = candidatePool.filter(p => {
+            if (!p.is_alive) return false;
+            if (p.id === playerId) return false;
+            if (p.role_info && p.role_info.team === 'mafia') return false;
+            const r = (p.role || '').toLowerCase();
+            if (r === 'mafia' || r === 'don') return false;
+            return true;
+        });
+
+        if (validTargets.length === 0) {
+            list.innerHTML = `<span style="color: var(--text-muted); font-size: 0.8rem;">Dinc sakinlər qalmayıb</span>`;
+            return;
+        }
+
+        validTargets.forEach(c => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `mafia-target-btn ${selectedMafiaTargetId === c.id ? 'selected' : ''}`;
+            btn.dataset.id = c.id;
+            btn.innerHTML = `
+                <span><i class="fa-solid fa-crosshairs" style="margin-right: 5px; font-size: 0.8rem; color: var(--role-mafia);"></i>${c.name}</span>
+                <i class="fa-regular ${selectedMafiaTargetId === c.id ? 'fa-circle-dot' : 'fa-circle'}"></i>
+            `;
+            btn.onclick = function() { selectMafiaTarget(c.id, this); };
+            list.appendChild(btn);
+        });
+    }
+
+    function selectMafiaTarget(targetId, btnEl) {
+        selectedMafiaTargetId = targetId;
+        sounds.playClick();
+
+        document.querySelectorAll('.mafia-target-btn').forEach(b => {
+            b.classList.remove('selected');
+            const icon = b.querySelector('i:last-child');
+            if (icon) icon.className = 'fa-regular fa-circle';
+        });
+
+        btnEl.classList.add('selected');
+        const icon = btnEl.querySelector('i:last-child');
+        if (icon) icon.className = 'fa-solid fa-circle-dot';
+
+        socket.emit('mafia_select_target', {
+            room: roomCode,
+            voter_id: playerId,
+            target_id: targetId
+        });
+
+        showToast(t('mafia_target_selected'), 'info');
+    }
+
+    socket.on('mafia_target_updated', function(data) {
+        if (!isMafiaMember()) return;
+        selectedMafiaTargetId = data.target_id;
+        document.querySelectorAll('.mafia-target-btn').forEach(b => {
+            const isMatch = (parseInt(b.dataset.id) === data.target_id);
+            b.classList.toggle('selected', isMatch);
+            const icon = b.querySelector('i:last-child');
+            if (icon) icon.className = isMatch ? 'fa-solid fa-circle-dot' : 'fa-regular fa-circle';
+        });
+    });
+
+    function triggerGunshotFlash() {
+        const overlay = document.getElementById('gunshot-flash-overlay');
+        if (!overlay) return;
+        overlay.classList.remove('active');
+        void overlay.offsetWidth;
+        overlay.classList.add('active');
+        setTimeout(() => {
+            overlay.classList.remove('active');
+        }, 2500);
+    }
+
     socket.on('phase_changed', function (data) {
         const overlay = document.getElementById('player-phase-overlay');
         const icon = document.getElementById('phase-overlay-icon');
         const title = document.getElementById('phase-overlay-title');
         const desc = document.getElementById('phase-overlay-desc');
+        const mafiaSection = document.getElementById('mafia-night-section');
+
+        if (data.all_players) {
+            latestPlayersList = data.all_players;
+        }
+
+        // Night victim resolution & Gunshot sound
+        if (data.victim_eliminated) {
+            if (data.victim_eliminated.id === playerId) {
+                isPlayerAlive = false;
+                sounds.playGunshot();
+                triggerGunshotFlash();
+                const banner = document.getElementById('eliminated-banner');
+                if (banner) banner.classList.add('show');
+                const ghostContainer = document.getElementById('ghost-roster-container');
+                if (ghostContainer) ghostContainer.style.display = 'flex';
+                showToast(t('you_were_shot_title'), 'error', 10000);
+                sendPushNotification(t('you_were_shot_title'), t('you_were_shot_desc'));
+            } else {
+                showToast(`🔴 ${data.victim_eliminated.name} ${t('night_victim_elim')}`, 'error', 7000);
+            }
+
+            if (!isPlayerAlive && data.all_players) {
+                renderGhostRoster(data.all_players);
+            }
+        }
 
         if (data.phase === 'night') {
+            if (isPlayerAlive && isMafiaMember()) {
+                renderMafiaNightTargetList(data.all_players || latestPlayersList);
+                if (mafiaSection) mafiaSection.style.display = 'block';
+            } else {
+                if (mafiaSection) mafiaSection.style.display = 'none';
+            }
+
             icon.innerHTML = '<i class="fa-solid fa-moon"></i>';
             title.textContent = t('night_overlay_title');
             desc.textContent = t('night_overlay_subtitle');
@@ -419,6 +555,7 @@
             sendPushNotification(t('night_overlay_title'), t('night_overlay_subtitle'));
             if (navigator.vibrate) navigator.vibrate([150, 100, 150]);
         } else if (data.phase === 'day') {
+            if (mafiaSection) mafiaSection.style.display = 'none';
             overlay.classList.remove('show');
             overlay.style.display = 'none';
             sounds.playDay();
@@ -426,6 +563,7 @@
             sendPushNotification(`${t('phase_day_short')} #${data.day_number}!`, t('phase_day'));
             if (navigator.vibrate) navigator.vibrate(100);
         } else if (data.phase === 'voting') {
+            if (mafiaSection) mafiaSection.style.display = 'none';
             overlay.classList.remove('show');
             overlay.style.display = 'none';
             sounds.playVoting();
@@ -436,6 +574,7 @@
 
     socket.on('update_roles', function (data) {
         if (data.players) {
+            latestPlayersList = data.players;
             const me = data.players.find(p => p.name === playerName || p.id === playerId);
             if (me && me.role) {
                 updateRoleDisplay(me.role, me.role_info);

@@ -386,6 +386,25 @@
                     voteBox.style.display = (newPhase === 'voting') ? 'block' : 'none';
                 }
 
+                if (data.victim_eliminated) {
+                    sounds.playEliminated();
+                    showToast(`💥 ${data.victim_eliminated.name} ${t('night_victim_elim')}`, 'error', 8000);
+                    const card = document.getElementById(`player-card-${data.victim_eliminated.id}`);
+                    if (card) {
+                        const nameEl = card.querySelector('.player-name');
+                        const btn = card.querySelector('.status-toggle-btn');
+                        if (nameEl) nameEl.classList.add('player-dead');
+                        if (btn) {
+                            btn.className = 'status-toggle-btn dead';
+                            btn.innerHTML = '<i class="fa-solid fa-skull"></i>';
+                        }
+                    }
+                }
+
+                if (data.stats) {
+                    updateForceBalance(data.stats);
+                }
+
                 if (newPhase === 'night') {
                     sounds.playNight();
                     showToast(t('phase_night'), 'info');
