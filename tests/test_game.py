@@ -36,6 +36,124 @@ def test_index_page(client):
     assert b"MAFIA" in response.data or b"MAFIYA" in response.data
 
 
+def test_rejoining_player_uses_normalized_name_without_creating_duplicate(client):
+    with app.app_context():
+        db.session.add(Room(host_code="REJOIN1", status="waiting"))
+        db.session.commit()
+
+    first_response = client.post("/join_game", data={
+        "room-code": "REJOIN1",
+        "player-name": "  ALICE\u00a0\u00a0Smith  ",
+    })
+    assert first_response.status_code == 302
+    first_location = first_response.headers["Location"]
+
+    with client.session_transaction() as browser_session:
+        browser_session.clear()
+
+    second_response = client.post("/join_game", data={
+        "room-code": "REJOIN1",
+        "player-name": "alice smith",
+    })
+
+    assert second_response.status_code == 302
+    assert second_response.headers["Location"] == first_location
+    with app.app_context():
+        players = Player.query.filter_by(room_code="REJOIN1").all()
+        assert len(players) == 1
+        assert players[0].name == "ALICE Smith"
+
+
+def test_existing_player_can_rejoin_started_game_with_role_preserved(client):
+    with app.app_context():
+        room = Room(host_code="REJOIN2", status="started", phase="night")
+        player = Player(
+            room_code="REJOIN2",
+            name="Alice",
+            role="Doctor",
+            role_info={"team": "town"},
+            is_alive=False,
+        )
+        room.players = [player]
+        db.session.add(room)
+        db.session.commit()
+        player_id = player.id
+
+    response = client.post("/join_game", data={
+        "room-code": "REJOIN2",
+        "player-name": " alice ",
+    })
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(f"/player/{player_id}")
+    with app.app_context():
+        players = Player.query.filter_by(room_code="REJOIN2").all()
+        assert len(players) == 1
+        assert players[0].role == "Doctor"
+        assert players[0].is_alive is False
+
+
+def test_new_player_cannot_join_after_game_has_started(client):
+    with app.app_context():
+        room = Room(host_code="LOCKED1", status="started")
+        room.players = [Player(room_code="LOCKED1", name="Alice", role="Mafia")]
+        db.session.add(room)
+        db.session.commit()
+
+    response = client.post("/join_game", data={
+        "room-code": "LOCKED1",
+        "player-name": "Bob",
+    })
+
+    assert response.status_code == 409
+    assert b"game_started_join_error" in response.data
+    with app.app_context():
+        assert Player.query.filter_by(room_code="LOCKED1").count() == 1
+
+
+def test_socket_reconnect_sends_private_role_state(client):
+    from websock import socketio
+
+    with app.app_context():
+        room = Room(host_code="ROLESYNC", status="started", phase="night", day_number=2)
+        player = Player(
+            room_code="ROLESYNC",
+            name="Alice",
+            role="Sheriff",
+            role_info={"team": "town"},
+        )
+        other = Player(
+            room_code="ROLESYNC",
+            name="Bob",
+            role="Mafia",
+            role_info={"team": "mafia"},
+        )
+        room.players = [player, other]
+        db.session.add(room)
+        db.session.commit()
+        player_id = player.id
+
+    socket_client = socketio.test_client(app)
+    socket_client.get_received()
+    socket_client.emit("join_room", {"room": "ROLESYNC", "player_id": player_id})
+    role_updates = [
+        event["args"][0]
+        for event in socket_client.get_received()
+        if event["name"] == "update_roles"
+    ]
+    socket_client.disconnect()
+
+    assert len(role_updates) == 1
+    assert role_updates[0]["sync"] is True
+    assert role_updates[0]["phase"] == "night"
+    assert role_updates[0]["day_number"] == 2
+    current_player = next(item for item in role_updates[0]["players"] if item["id"] == player_id)
+    assert current_player["role"] == "Sheriff"
+    assert current_player["role_info"]["team"] == "town"
+    other_player = next(item for item in role_updates[0]["players"] if item["id"] != player_id)
+    assert "role" not in other_player
+
+
 def test_roles_assignment():
     players = [
         {"id": 1, "name": "Alice", "role": None},

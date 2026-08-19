@@ -23,7 +23,14 @@
 
     <!-- Tab 1: Join Game -->
     <div id="tab-join" class="tab-content active">
+        {% if join_error_key %}
+        <div class="join-error" role="alert">
+            <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+            <span data-i18n="{{ join_error_key }}">Oyuna yeni iştirakçı kimi qoşulmaq artıq mümkün deyil.</span>
+        </div>
+        {% endif %}
         <form action="{{ url_for('home_bp.join_game') }}" method="post" id="join-form">
+            <input type="hidden" name="player-id" id="player-id" value="">
             <div class="form-group">
                 <label class="form-label" for="player-name" data-i18n="label_nickname">Adınız / Ləqəbiniz</label>
                 <div class="input-wrapper">
@@ -35,6 +42,7 @@
                            placeholder="Məs: Don Karleone" 
                            data-i18n-placeholder="placeholder_nickname"
                            maxlength="24"
+                           value="{{ entered_name | default('', true) }}"
                            required 
                            autocomplete="off">
                 </div>
@@ -54,6 +62,7 @@
                            inputmode="numeric"
                            enterkeyhint="go"
                            required 
+                           value="{{ entered_code | default('', true) }}"
                            autocomplete="off">
                 </div>
             </div>
@@ -102,6 +111,37 @@
                 roomInput.value = roomParam;
             }
             switchTab('join');
+        }
+
+        const joinForm = document.getElementById('join-form');
+        const roomInput = document.getElementById('room-code');
+        const playerIdInput = document.getElementById('player-id');
+        const joinButton = document.getElementById('join-room');
+
+        function restorePlayerId() {
+            if (!roomInput || !playerIdInput) return;
+            const normalizedRoom = roomInput.value.trim();
+            try {
+                playerIdInput.value = normalizedRoom
+                    ? (localStorage.getItem(`mafia_player_${normalizedRoom}`) || '')
+                    : '';
+            } catch (error) {
+                playerIdInput.value = '';
+            }
+        }
+
+        restorePlayerId();
+        if (roomInput) roomInput.addEventListener('input', restorePlayerId);
+        if (joinForm) {
+            joinForm.addEventListener('submit', event => {
+                if (joinForm.dataset.submitting === 'true') {
+                    event.preventDefault();
+                    return;
+                }
+                restorePlayerId();
+                joinForm.dataset.submitting = 'true';
+                if (joinButton) joinButton.disabled = true;
+            });
         }
     });
 </script>

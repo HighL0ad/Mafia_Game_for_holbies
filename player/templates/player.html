@@ -218,6 +218,10 @@
     let votingInterval = null;
     let votingActive = false;
 
+    try {
+        localStorage.setItem(`mafia_player_${roomCode}`, String(playerId));
+    } catch (error) {}
+
     const roleIcons = {
         'mafia': 'fa-solid fa-gun',
         'don': 'fa-solid fa-crown',
@@ -262,11 +266,13 @@
         const roleTeam = document.getElementById('role-team');
         const roleIcon = document.getElementById('role-icon');
         const roleDesc = document.getElementById('role-desc');
+        const wasFlipped = card && card.classList.contains('is-flipped');
 
         if (currentRoleInfo && currentRoleInfo.is_custom) {
             const roleColor = safeRoleColor(currentRoleInfo.color);
             card.className = 'card-inner theme-custom';
             card.style.setProperty('--custom-role-color', roleColor);
+            if (wasFlipped) card.classList.add('is-flipped');
 
             if (roleTitle) {
                 roleTitle.textContent = currentRoleInfo.name || roleName;
@@ -293,6 +299,7 @@
         } else {
             card.className = `card-inner theme-${key}`;
             card.style.removeProperty('--custom-role-color');
+            if (wasFlipped) card.classList.add('is-flipped');
 
             if (roleTitle) {
                 roleTitle.textContent = t('role_' + key) || roleName;
@@ -892,16 +899,20 @@
             latestPlayersList = data.players;
             const me = data.players.find(p => p.id === playerId);
             if (me && me.role) {
+                const incomingRoleKey = me.role.toLowerCase();
+                const roleChanged = currentRoleKey !== incomingRoleKey;
                 updateRoleDisplay(me.role, me.role_info);
                 // Re-register after role assignment so newly assigned Mafia
                 // members immediately receive their private team target updates.
-                ensureJoinedRoom();
-                sounds.playCardDeal();
-                const roleName = (me.role_info && me.role_info.is_custom) ? (me.role_info.name || me.role) : (t('role_' + me.role.toLowerCase()) || me.role);
-                showToast(`${t('role_assigned_toast')} ${roleName}!`, 'success', 5000);
-                sendPushNotification(t('your_role'), `${t('role_assigned_toast')} ${roleName}!`);
-                if (navigator.vibrate) {
-                    navigator.vibrate([100, 50, 100]);
+                if (!data.sync) ensureJoinedRoom();
+                if (roleChanged) {
+                    sounds.playCardDeal();
+                    const roleName = (me.role_info && me.role_info.is_custom) ? (me.role_info.name || me.role) : (t('role_' + me.role.toLowerCase()) || me.role);
+                    showToast(`${t('role_assigned_toast')} ${roleName}!`, 'success', 5000);
+                    sendPushNotification(t('your_role'), `${t('role_assigned_toast')} ${roleName}!`);
+                    if (navigator.vibrate) {
+                        navigator.vibrate([100, 50, 100]);
+                    }
                 }
             }
 

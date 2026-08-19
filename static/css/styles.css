@@ -923,6 +923,25 @@ body:has(.game-results-overlay[style*="display: flex"]) .top-nav-bar {
     flex-shrink: 0;
 }
 
+.join-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    border: 1px solid rgba(230, 57, 70, 0.4);
+    border-radius: var(--radius-md);
+    background: rgba(230, 57, 70, 0.1);
+    color: #ff8b94;
+    font-size: 0.86rem;
+    line-height: 1.45;
+}
+
+.join-error i {
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
 /* Host Timer & Phase Control */
 .host-controls-panel {
     background: var(--bg-surface-elevated);

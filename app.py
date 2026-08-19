@@ -6,12 +6,12 @@ except ImportError:
     pass
 
 from flask import Flask, render_template
-from flask_socketio import join_room, leave_room
+from flask_socketio import emit, join_room, leave_room
 
 from config import Config
 from database import db
 from home.home import home_bp
-from host.host import host_bp
+from host.host import host_bp, serialize_player_view
 from models import Player, Room
 from player.player import player_bp
 from websock import socketio
@@ -400,6 +400,18 @@ def handle_join_room(data):
                 join_room(f"player:{player.id}")
                 if _is_mafia_member(player):
                     join_room(f"mafia:{room}")
+                room_record = player.room
+                room_players = Player.query.filter_by(room_code=room).order_by(Player.id).all()
+                emit(
+                    "update_roles",
+                    {
+                        "players": serialize_player_view(room_players, player),
+                        "status": room_record.status,
+                        "phase": room_record.phase or "day",
+                        "day_number": room_record.day_number or 1,
+                        "sync": True,
+                    },
+                )
 
 
 @socketio.on("leave_room")

@@ -72,6 +72,8 @@
     text-align: center;
     transition: transform 0.65s cubic-bezier(0.4, 0.2, 0.2, 1);
     transform-style: preserve-3d;
+    -webkit-transform-style: preserve-3d;
+    will-change: transform;
     cursor: pointer;
     border-radius: var(--radius-lg);
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
@@ -79,6 +81,7 @@
 
 .card-inner.is-flipped {
     transform: rotateY(180deg);
+    -webkit-transform: rotateY(180deg);
 }
 
 .card-face {
@@ -99,6 +102,8 @@
 
 /* Card Front: Mystery / Cover */
 .card-front {
+    transform: rotateY(0deg);
+    -webkit-transform: rotateY(0deg);
     background: radial-gradient(circle at 50% 30%, #1c202c 0%, #0d0f14 100%);
     color: #ffffff;
 }
@@ -202,6 +207,7 @@
 /* Card Back: Revealed Role */
 .card-back {
     transform: rotateY(180deg);
+    -webkit-transform: rotateY(180deg);
     background: radial-gradient(circle at 50% 20%, #1f2433 0%, #0d0f14 100%);
     color: #ffffff;
 }
