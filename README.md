@@ -62,8 +62,8 @@ python app.py
 
 1. При пуше в `master` запускаются unit-тесты (`pytest`).
 2. Собирается Docker-образ и публикуется в **GitHub Container Registry (`ghcr.io/highl0ad/mafia_game`)**.
-3. Файл `compose.yml` копируется на VPS, и контейнер перезапускается в фоне с подключением к сети `web_gateway`.
-4. Nginx Reverse Proxy проксирует домен `mafia.abil.online` на контейнер `mafia_web:8000`.
+3. Файл `compose.yml` копируется на VPS, и контейнер перезапускается в фоне.
+4. Системный Nginx на VPS проксирует `mafia.abil.online` на локальный порт `127.0.0.1:18000`.
 
 ---
 

@@ -15,14 +15,8 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    networks:
-      - web_gateway
-    expose:
-      - 8000
+    ports:
+      - "127.0.0.1:18000:8000"
 
 volumes:
   mafia_data:
-
-networks:
-  web_gateway:
-    external: true
